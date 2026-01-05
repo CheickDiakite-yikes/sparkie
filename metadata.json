@@ -1,6 +1,6 @@
 {
-  "name": "SparkGarden - AI Idea Incubator",
-  "description": "A smart, scrapbook-style idea gardener that recursively expands your thoughts into plans using advanced AI research and visualization.",
+  "name": "SparkGarden - AI PRD & Idea Incubator",
+  "description": "Free AI Product Requirements Document (PRD) generator. Automate product research, market analysis, and UI concepts with recursive AI agents.",
   "requestFramePermissions": [
     "geolocation"
   ]
