@@ -108,4 +108,4 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-*Built with ❤️ and too much caffeine by [Your Name].*
+*Built with ❤️ and too much caffeine by Cheick Diakite*
