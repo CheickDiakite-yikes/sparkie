@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Idea, AspectRatio, ImageSize, UserNote } from '../types';
-import { X, RefreshCw, Image as ImageIcon, MapPin, ExternalLink, Loader2, Maximize2, Send, NotebookPen, Bot, FileText, Palette, Globe, ChevronRight, LayoutTemplate, Brush, Wrench, Terminal, Copy, Check } from 'lucide-react';
+import { X, RefreshCw, Image as ImageIcon, MapPin, ExternalLink, Loader2, Maximize2, Send, NotebookPen, Bot, FileText, Palette, Globe, ChevronRight, LayoutTemplate, Brush, Wrench, Terminal, Copy, Check, Download } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { generateConceptImage, findRelevantPlaces } from '../services/geminiService';
 
@@ -58,6 +58,9 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
   const [visualMode, setVisualMode] = useState<VisualMode>('artistic');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>(AspectRatio.SQUARE);
   const [imgSize, setImgSize] = useState<ImageSize>(ImageSize.ONE_K);
+  
+  // Preview State
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   
   // Prompt Copy State
   const [copied, setCopied] = useState(false);
@@ -258,7 +261,7 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
         {/* Gallery */}
         <div className="space-y-4">
            {idea.images.slice().reverse().map((img, i) => (
-             <div key={i} className="relative group rounded-xl overflow-hidden shadow-sm border border-stone-100 bg-white">
+             <div key={i} className="relative group rounded-xl overflow-hidden shadow-sm border border-stone-100 bg-white cursor-pointer" onClick={() => setPreviewImage(img.url)}>
                <img src={img.url} alt="Concept" className="w-full object-cover" />
                {img.style === 'ui-flow' && (
                   <div className="absolute top-2 left-2 bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shadow-sm">
@@ -266,9 +269,15 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
                   </div>
                )}
                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <a href={img.url} download={`concept-${i}.png`} className="text-white bg-white/20 backdrop-blur-md p-2 rounded-full hover:bg-white/40">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewImage(img.url);
+                    }} 
+                    className="text-white bg-white/20 backdrop-blur-md p-2 rounded-full hover:bg-white/40 transition-colors"
+                  >
                     <Maximize2 size={18} />
-                  </a>
+                  </button>
                </div>
              </div>
            ))}
@@ -298,6 +307,7 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
   );
 
   return (
+    <>
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 md:p-8">
       <div 
         className="bg-[#FDFBF7] w-full max-w-7xl h-[90vh] rounded-[32px] shadow-2xl overflow-hidden flex flex-col md:flex-row relative animate-float"
@@ -504,6 +514,44 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
         </div>
       </div>
     </div>
+
+    {/* LIGHTBOX OVERLAY */}
+    {previewImage && (
+      <div 
+          className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-200"
+          onClick={() => setPreviewImage(null)}
+      >
+          <button 
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+          >
+              <X size={32} />
+          </button>
+
+          <div 
+              className="relative max-w-full max-h-full flex flex-col items-center" 
+              onClick={(e) => e.stopPropagation()} 
+          >
+              <img 
+                  src={previewImage} 
+                  alt="Full Preview" 
+                  className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
+              />
+              
+              <div className="mt-6 flex gap-4">
+                  <a 
+                      href={previewImage} 
+                      download={`sparkgarden-concept-${Date.now()}.png`}
+                      className="flex items-center gap-2 px-6 py-3 bg-white text-black rounded-full font-medium hover:bg-gray-200 transition-colors shadow-lg hover:scale-105 transform duration-200"
+                  >
+                      <Download size={20} />
+                      Download Image
+                  </a>
+              </div>
+          </div>
+      </div>
+    )}
+    </>
   );
 };
 
