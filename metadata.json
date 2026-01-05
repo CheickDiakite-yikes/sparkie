@@ -1,0 +1,7 @@
+{
+  "name": "SparkGarden - AI Idea Incubator",
+  "description": "A smart, scrapbook-style idea gardener that recursively expands your thoughts into plans using advanced AI research and visualization.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
