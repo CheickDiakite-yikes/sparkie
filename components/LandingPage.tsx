@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Sparkles, ArrowRight, BrainCircuit, Palette, Zap, ChevronDown, Leaf } from 'lucide-react';
+import { Sparkles, ArrowRight, BrainCircuit, Palette, Zap, ChevronDown, Leaf, Camera } from 'lucide-react';
 
 interface LandingPageProps {
   onEnterApp: () => void;
+  onViewSocialCard?: () => void;
 }
 
 // --- Animation Helper Component ---
@@ -37,7 +38,7 @@ const RevealOnScroll: React.FC<{ children: React.ReactNode; className?: string; 
   );
 };
 
-const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onViewSocialCard }) => {
   const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
@@ -300,8 +301,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                Designed with dopamine & intensity. © 2026
             </p>
             
-            <div className="flex gap-6 text-sm font-medium text-stone-500">
-               <a href="#" className="hover:text-black transition-colors">Twitter</a>
+            <div className="flex gap-6 text-sm font-medium text-stone-500 items-center">
+               <button onClick={onViewSocialCard} className="hover:text-black transition-colors flex items-center gap-1">
+                 <Camera size={14}/> Social Card
+               </button>
                <a href="#" className="hover:text-black transition-colors">GitHub</a>
             </div>
          </div>

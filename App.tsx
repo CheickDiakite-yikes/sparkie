@@ -4,6 +4,7 @@ import IdeaCard from './components/IdeaCard';
 import ChatWidget from './components/ChatWidget';
 import IdeaDetailModal from './components/IdeaDetailModal';
 import LandingPage from './components/LandingPage';
+import SocialMediaCard from './components/SocialMediaCard';
 import { analyzeIdeaRecursive } from './services/geminiService';
 import { getAllIdeas, saveIdea, migrateFromLocalStorage } from './services/db';
 import { Idea } from './types';
@@ -27,6 +28,7 @@ const App: React.FC = () => {
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null);
   const [showNewIdeaInput, setShowNewIdeaInput] = useState(false);
+  const [showSocialCard, setShowSocialCard] = useState(false);
   
   // New Idea Input State
   const [newTitle, setNewTitle] = useState('');
@@ -168,7 +170,11 @@ const App: React.FC = () => {
     return (
       <>
         <DebugOverlay />
-        <LandingPage onEnterApp={() => setCurrentView('dashboard')} />
+        <LandingPage 
+            onEnterApp={() => setCurrentView('dashboard')} 
+            onViewSocialCard={() => setShowSocialCard(true)}
+        />
+        {showSocialCard && <SocialMediaCard onClose={() => setShowSocialCard(false)} />}
       </>
     );
   }
