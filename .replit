@@ -1,8 +1,8 @@
-modules = ["nodejs-18"]
+modules = ["nodejs-20", "web"]
 run = "npm run dev"
 
 [nix]
-channel = "stable-23_05"
+channel = "stable-25_05"
 
 [env]
 GEMINI_API_KEY = "your_api_key_here"
