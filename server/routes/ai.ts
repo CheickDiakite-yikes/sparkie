@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { GoogleGenAI, Type } from '@google/genai';
 import { query } from '../db.js';
+import { getRequestId, logError, logInfo, logWarn, summarizeError, summarizeGeminiResponse } from '../logger.js';
 import { requireAuth } from './auth.js';
 
 const router = Router();
@@ -9,6 +10,9 @@ router.use(requireAuth);
 const getAI = () => new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const MODEL = 'gemini-2.0-flash';
+const IMAGE_MODEL = 'gemini-3-pro-image-preview';
+const VALID_ASPECT_RATIOS = new Set(['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9']);
+const VALID_IMAGE_SIZES = new Set(['1K', '2K', '4K']);
 
 const RESEARCH_AGENT_PROMPT = `
 You are an Elite Market Researcher & Trend Analyst. 
@@ -356,53 +360,140 @@ ${analysis.one_shot_prompt}
 });
 
 router.post('/:id/generate-image', async (req: Request, res: Response) => {
+  const requestId = getRequestId(req, res);
+  const requestStartedAt = Date.now();
+
   try {
     const userId = req.session.userId!;
     const ideaId = parseInt(req.params.id as string);
+    const { prompt, aspect_ratio, image_size, style, visual_mode } = req.body || {};
+
+    logInfo('image.generate.request', {
+      requestId,
+      ideaId,
+      userId,
+      promptProvided: typeof prompt === 'string' && prompt.trim().length > 0,
+      promptLength: typeof prompt === 'string' ? prompt.length : 0,
+      aspectRatio: aspect_ratio || null,
+      imageSize: image_size || null,
+      style: style || visual_mode || null,
+    });
 
     if (isNaN(ideaId)) {
-      return res.status(400).json({ error: 'Invalid idea ID' });
+      return res.status(400).json({ error: 'Invalid idea ID', request_id: requestId });
     }
 
     const ideaResult = await query('SELECT * FROM ideas WHERE id = $1 AND user_id = $2', [ideaId, userId]);
     if (ideaResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Idea not found' });
+      return res.status(404).json({ error: 'Idea not found', request_id: requestId });
     }
 
-    const { prompt, aspect_ratio, style } = req.body;
-    if (!prompt) {
-      return res.status(400).json({ error: 'Prompt is required' });
-    }
-
+    const idea = ideaResult.rows[0] as any;
     const ai = getAI();
-    let finalPrompt = prompt;
 
-    if (style === 'ui-flow') {
-      finalPrompt = `
-        High-fidelity professional UI design mockup for mobile app.
-        Content: ${prompt}.
-        Layout: A horizontal sequence of 5 mobile screens side-by-side, showcasing a cohesive user flow with transitions. 
-        Style: Modern, clean, Dribbble trending, Figma portfolio presentation, sleek typography, high contrast, dark mode aesthetics if appropriate.
-        Resolution: 4k, incredibly detailed, photorealistic.
-      `;
+    const requestedStyle = String(style || visual_mode || 'artistic');
+    const normalizedStyle = requestedStyle === 'ui-flow' ? 'ui-flow' : 'artistic';
+
+    const safeAspectRatio = VALID_ASPECT_RATIOS.has(aspect_ratio)
+      ? aspect_ratio
+      : (normalizedStyle === 'ui-flow' ? '16:9' : '1:1');
+    const normalizedSize = typeof image_size === 'string' ? image_size.toUpperCase() : '';
+    const safeImageSize = VALID_IMAGE_SIZES.has(normalizedSize)
+      ? normalizedSize
+      : (normalizedStyle === 'ui-flow' ? '2K' : '1K');
+
+    let basePrompt = typeof prompt === 'string' ? prompt.trim() : '';
+    let promptSource: 'request' | 'idea-context' = 'request';
+    if (!basePrompt) {
+      const analysisResult = await query('SELECT prd, uiux FROM analysis WHERE idea_id = $1', [ideaId]);
+      const analysis = (analysisResult.rows[0] || {}) as { prd?: string; uiux?: string };
+      const contextParts = [
+        idea.title ? `App concept title: ${idea.title}` : '',
+        idea.initial_prompt ? `Original idea summary: ${idea.initial_prompt}` : '',
+        analysis.prd ? `PRD notes:\n${analysis.prd}` : '',
+        analysis.uiux ? `Design notes:\n${analysis.uiux}` : '',
+      ].filter(Boolean);
+      basePrompt = contextParts.join('\n\n').slice(0, 8000);
+      promptSource = 'idea-context';
     }
 
+    if (!basePrompt) {
+      logWarn('image.generate.prompt.empty', {
+        requestId,
+        ideaId,
+        userId,
+      });
+      return res.status(400).json({ error: 'Unable to build an image prompt. Add idea notes first.', request_id: requestId });
+    }
+
+    let finalPrompt = `
+Create a high-fidelity concept visual for this product idea.
+
+${basePrompt}
+
+Requirements:
+- Professional, polished composition suitable for a product pitch deck.
+- Highlight the primary user value and key interaction.
+- Keep the composition clean, modern, and visually coherent.
+- No watermark overlays.
+`.trim();
+
+    if (normalizedStyle === 'ui-flow') {
+      finalPrompt = `
+Create a high-fidelity mobile app UI flow concept based on this product idea.
+
+${basePrompt}
+
+Requirements:
+- Show 4-6 mobile app screens in a cohesive horizontal flow.
+- Keep typography, spacing, and component styles consistent.
+- Include realistic UI labels and actionable states.
+- Portfolio-grade product design quality.
+`.trim();
+    }
+
+    const modelStartedAt = Date.now();
     try {
+      logInfo('image.generate.model.request', {
+        requestId,
+        ideaId,
+        model: IMAGE_MODEL,
+        style: normalizedStyle,
+        aspectRatio: safeAspectRatio,
+        imageSize: safeImageSize,
+        promptSource,
+        promptLength: finalPrompt.length,
+      });
+
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-preview-05-20',
+        model: IMAGE_MODEL,
         contents: finalPrompt,
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
+          imageConfig: {
+            aspectRatio: safeAspectRatio,
+            imageSize: safeImageSize,
+          },
         },
       });
 
       let imageData: string | null = null;
       let textResponse: string | null = null;
+      const parts = response.candidates?.[0]?.content?.parts || (response as any).parts || [];
 
-      const parts = response.candidates?.[0]?.content?.parts || [];
+      logInfo('image.generate.model.response', {
+        requestId,
+        ideaId,
+        model: IMAGE_MODEL,
+        durationMs: Date.now() - modelStartedAt,
+        diagnostics: summarizeGeminiResponse(response),
+      });
+
+      let imageMimeType = 'image/png';
       for (const part of parts) {
-        if (part.inlineData) {
-          imageData = part.inlineData.data || null;
+        if (part.inlineData?.data) {
+          imageData = part.inlineData.data;
+          imageMimeType = part.inlineData.mimeType || 'image/png';
           break;
         }
         if (part.text) {
@@ -411,34 +502,72 @@ router.post('/:id/generate-image', async (req: Request, res: Response) => {
       }
 
       if (!imageData) {
-        console.error('No image data in response. Text response:', textResponse);
+        const blockReason = (response as any)?.promptFeedback?.blockReason;
+        logWarn('image.generate.no_image_returned', {
+          requestId,
+          ideaId,
+          model: IMAGE_MODEL,
+          blockReason: blockReason || null,
+          textResponseLength: textResponse?.length || 0,
+        });
         return res.status(400).json({
-          error: "Image generation returned no image. The prompt may have been filtered by safety settings. Try rephrasing your concept description."
+          error: `Image generation returned no image${blockReason ? ` (${blockReason})` : ''}. Try rephrasing your concept description.`,
+          request_id: requestId,
         });
       }
 
+      const ext = imageMimeType.includes('jpeg') || imageMimeType.includes('jpg') ? 'jpg' : 'png';
       const { Client } = await import('@replit/object-storage');
       const client = new Client();
-      const storageKey = `images/idea-${ideaId}/${Date.now()}.png`;
+      const storageKey = `images/idea-${ideaId}/${Date.now()}.${ext}`;
       const buffer = Buffer.from(imageData, 'base64');
 
       await client.uploadFromBytes(storageKey, buffer);
 
       await query(
         'INSERT INTO images (idea_id, storage_key, prompt, aspect_ratio, style) VALUES ($1, $2, $3, $4, $5)',
-        [ideaId, storageKey, prompt, aspect_ratio || '1:1', style || 'artistic']
+        [ideaId, storageKey, basePrompt, safeAspectRatio, normalizedStyle]
       );
 
-      return res.json({ storage_key: storageKey, url: `/api/images/${encodeURIComponent(storageKey)}` });
+      logInfo('image.generate.success', {
+        requestId,
+        ideaId,
+        userId,
+        style: normalizedStyle,
+        aspectRatio: safeAspectRatio,
+        imageSize: safeImageSize,
+        storageKey,
+        durationMs: Date.now() - requestStartedAt,
+      });
+
+      return res.json({
+        storage_key: storageKey,
+        url: `/api/images/${encodeURIComponent(storageKey)}`,
+        request_id: requestId,
+      });
     } catch (imgError: any) {
-      console.error('Image generation error:', imgError?.message || imgError);
+      logError('image.generate.failure', {
+        requestId,
+        ideaId,
+        userId,
+        style: normalizedStyle,
+        aspectRatio: safeAspectRatio,
+        imageSize: safeImageSize,
+        durationMs: Date.now() - requestStartedAt,
+        error: summarizeError(imgError),
+      });
       return res.status(500).json({
-        error: "Image generation failed. Please try again with a different prompt."
+        error: "Image generation failed. Please try again with a different prompt.",
+        request_id: requestId,
       });
     }
   } catch (error) {
-    console.error('Image generation error:', error);
-    return res.status(500).json({ error: 'Image generation failed. Please try again.' });
+    logError('image.generate.unexpected_failure', {
+      requestId,
+      durationMs: Date.now() - requestStartedAt,
+      error: summarizeError(error),
+    });
+    return res.status(500).json({ error: 'Image generation failed. Please try again.', request_id: requestId });
   }
 });
 

@@ -39,9 +39,16 @@ router.get('/:key(*)', requireAuth, async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Image not found' });
     }
 
-    res.setHeader('Content-Type', 'image/png');
+    let contentType = 'image/png';
+    if (storageKey.endsWith('.jpg') || storageKey.endsWith('.jpeg')) {
+      contentType = 'image/jpeg';
+    } else if (storageKey.endsWith('.webp')) {
+      contentType = 'image/webp';
+    }
+    res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'public, max-age=31536000');
-    return res.send(result.value);
+    const buf = Buffer.isBuffer(result.value) ? result.value : Buffer.from(result.value as any);
+    return res.send(buf);
   } catch (error) {
     console.error('Download error:', error);
     return res.status(500).json({ error: 'Download failed' });

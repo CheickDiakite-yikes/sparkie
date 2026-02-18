@@ -11,6 +11,7 @@ import authRoutes from './routes/auth.js';
 import ideasRoutes from './routes/ideas.js';
 import aiRoutes from './routes/ai.js';
 import storageRoutes from './routes/storage.js';
+import { createRequestId, logError, logInfo, summarizeBody, summarizeError } from './logger.js';
 import './types.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -45,14 +46,68 @@ app.use(session({
   }
 }));
 
+app.use((req, res, next) => {
+  const startedAt = Date.now();
+  const requestId = req.header('x-request-id') || createRequestId();
+  res.locals.requestId = requestId;
+  res.setHeader('x-request-id', requestId);
+
+  const traceApiRequest = req.path.startsWith('/api/');
+  if (traceApiRequest) {
+    logInfo('http.request.start', {
+      requestId,
+      method: req.method,
+      path: req.originalUrl,
+      userId: req.session?.userId || null,
+      ip: req.ip,
+      body: summarizeBody(req.body),
+    });
+  }
+
+  res.on('finish', () => {
+    if (!traceApiRequest) return;
+    logInfo('http.request.end', {
+      requestId,
+      method: req.method,
+      path: req.originalUrl,
+      statusCode: res.statusCode,
+      durationMs: Date.now() - startedAt,
+      userId: req.session?.userId || null,
+      contentLength: res.getHeader('content-length') || null,
+    });
+  });
+
+  next();
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/ideas', ideasRoutes);
 app.use('/api/ideas', aiRoutes);
 app.use('/api/images', storageRoutes);
 
+app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const requestId = res.locals.requestId || req.header('x-request-id') || 'unknown';
+  logError('http.request.unhandled_error', {
+    requestId,
+    method: req.method,
+    path: req.originalUrl,
+    userId: req.session?.userId || null,
+    error: summarizeError(err),
+  });
+
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  return res.status(500).json({
+    error: 'Unhandled server error',
+    request_id: requestId,
+  });
+});
+
 async function start() {
   await initDB();
-  console.log('Database initialized');
+  logInfo('server.db.initialized', {});
 
   const httpServer = http.createServer(app);
 
@@ -76,11 +131,23 @@ async function start() {
   }
 
   httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${PORT} (${isDev ? 'development' : 'production'})`);
+    logInfo('server.started', {
+      host: '0.0.0.0',
+      port: PORT,
+      environment: isDev ? 'development' : 'production',
+    });
   });
 }
 
 start().catch((err) => {
-  console.error('Failed to start server:', err);
+  logError('server.start.failed', { error: summarizeError(err) });
   process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  logError('process.unhandled_rejection', { error: summarizeError(reason) });
+});
+
+process.on('uncaughtException', (error) => {
+  logError('process.uncaught_exception', { error: summarizeError(error) });
 });

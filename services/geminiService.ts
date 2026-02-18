@@ -197,11 +197,11 @@ export const analyzeIdeaRecursive = async (
 
     return {
       analysis: {
-        marketResearch: combinedResearch, 
+        market_research: combinedResearch,
         prd: prdResp.text || "Pending PRD...",
         uiux: uiuxResp.text || "Pending Design Specs...",
-        executiveSummary: execResp.text || "Pending Summary...",
-        oneShotPrompt: oneShotResp.text || "Pending Build Prompt..."
+        executive_summary: execResp.text || "Pending Summary...",
+        one_shot_prompt: oneShotResp.text || "Pending Build Prompt..."
       },
       groundingChunks: groundingChunks as GroundingChunk[]
     };
