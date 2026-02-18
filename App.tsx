@@ -227,40 +227,8 @@ const App: React.FC = () => {
             </button>
            )}
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-3">
-            <button 
-              onClick={() => setCurrentView('landing')} 
-              className="text-stone-400 hover:text-stone-600 p-2 rounded-full hover:bg-stone-100 transition-colors"
-              title="Home"
-            >
-              <Home size={20} />
-            </button>
-            <button
-              onClick={() => {
-                setCurrentView('profile');
-                setSelectedIdea(null);
-              }}
-              className={`p-2 rounded-full transition-colors ${
-                currentView === 'profile'
-                  ? 'text-stone-900 bg-stone-100'
-                  : 'text-stone-400 hover:text-stone-600 hover:bg-stone-100'
-              }`}
-              title="Profile"
-            >
-              <UserRound size={18} />
-            </button>
-            <button
-              onClick={handleLogout}
-              className="text-stone-400 hover:text-stone-600 transition-colors p-2 rounded-full hover:bg-stone-100"
-              title="Log out"
-            >
-              <LogOut size={18} />
-            </button>
-          </div>
-
-          {/* Mobile Menu Toggle */}
-          <div className="md:hidden relative">
+          {/* Combined Navigation Menu */}
+          <div className="relative">
             <button 
               onClick={() => setShowMobileMenu(!showMobileMenu)}
               className="w-10 h-10 flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl bg-stone-100 hover:bg-stone-200 transition-colors border border-stone-200"
