@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FDFBF7"/>
+      <stop offset="100%" stop-color="#F5F0E7"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F7F3EC"/>
+    </linearGradient>
+    <linearGradient id="brandBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#000000"/>
+      <stop offset="100%" stop-color="#292524"/>
+    </linearGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FDE68A"/>
+    </linearGradient>
+    <pattern id="grid" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="1.3" cy="1.3" r="1.3" fill="#D9D2C5" />
+    </pattern>
+    <filter id="shadow" x="0" y="0" width="1200" height="630" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)" opacity="0.45"/>
+
+  <g filter="url(#shadow)">
+    <rect x="82" y="72" width="1036" height="486" rx="36" fill="url(#panel)" stroke="#E7DFD1"/>
+  </g>
+
+  <rect x="122" y="72" width="1.5" height="486" fill="#F1BFC6" opacity="0.8"/>
+
+  <g transform="translate(130 132)">
+    <rect width="110" height="110" rx="30" fill="url(#brandBg)"/>
+    <path d="M24 79C33 63 45 53 58 49C67 47 76 43 84 35" stroke="url(#line)" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="24" cy="79" r="5" fill="#FFFFFF"/>
+    <circle cx="58" cy="49" r="5" fill="#FFFFFF"/>
+    <circle cx="84" cy="35" r="5" fill="#FCD34D"/>
+    <path d="M83 11L87 20L97 22L90 29L92 39L83 34L74 39L76 29L69 22L79 20L83 11Z" fill="#F59E0B" stroke="#FFFFFF" stroke-width="1.8"/>
+    <path d="M98 39L99.8 43L104 43.7L101 46.7L101.7 51L98 48.8L94.3 51L95 46.7L92 43.7L96.2 43Z" fill="#FFFFFF" opacity="0.9"/>
+  </g>
+
+  <text x="266" y="190" fill="#0F172A" font-size="84" font-family="Georgia, 'Times New Roman', serif" font-weight="700">Insparkie</text>
+  <text x="266" y="250" fill="#475569" font-size="33" font-family="Inter, Arial, sans-serif">AI Product Research, PRDs, and Concept Design in One Workspace</text>
+
+  <g transform="translate(130 318)">
+    <rect width="292" height="172" rx="18" fill="#111827"/>
+    <text x="22" y="42" fill="#F9FAFB" font-size="19" font-family="Inter, Arial, sans-serif" font-weight="700">Market Recon</text>
+    <text x="22" y="76" fill="#A5B4FC" font-size="15" font-family="Inter, Arial, sans-serif">• Competitor map + trend scan</text>
+    <text x="22" y="102" fill="#A5B4FC" font-size="15" font-family="Inter, Arial, sans-serif">• Grounded real-time sources</text>
+    <text x="22" y="128" fill="#A5B4FC" font-size="15" font-family="Inter, Arial, sans-serif">• Strategic risks surfaced early</text>
+  </g>
+
+  <g transform="translate(450 318)">
+    <rect width="292" height="172" rx="18" fill="#EDE9FE"/>
+    <text x="22" y="42" fill="#4C1D95" font-size="19" font-family="Inter, Arial, sans-serif" font-weight="700">PRD + Build Plan</text>
+    <text x="22" y="76" fill="#6D28D9" font-size="15" font-family="Inter, Arial, sans-serif">• Actionable user stories</text>
+    <text x="22" y="102" fill="#6D28D9" font-size="15" font-family="Inter, Arial, sans-serif">• Technical stack guidance</text>
+    <text x="22" y="128" fill="#6D28D9" font-size="15" font-family="Inter, Arial, sans-serif">• One-shot implementation prompt</text>
+  </g>
+
+  <g transform="translate(770 318)">
+    <rect width="292" height="172" rx="18" fill="#ECFDF5"/>
+    <text x="22" y="42" fill="#065F46" font-size="19" font-family="Inter, Arial, sans-serif" font-weight="700">Visual Concepts</text>
+    <text x="22" y="76" fill="#047857" font-size="15" font-family="Inter, Arial, sans-serif">• Artistic and UI flow modes</text>
+    <text x="22" y="102" fill="#047857" font-size="15" font-family="Inter, Arial, sans-serif">• 1K/2K/4K-ready output tiers</text>
+    <text x="22" y="128" fill="#047857" font-size="15" font-family="Inter, Arial, sans-serif">• Versioned image history</text>
+  </g>
+
+  <text x="130" y="542" fill="#78716C" font-size="20" font-family="Inter, Arial, sans-serif">insparkie.replit.app</text>
+</svg>
