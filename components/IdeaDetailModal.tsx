@@ -144,98 +144,107 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
   };
 
   const ToolsPanel = () => (
-    <div className="flex flex-col h-full overflow-y-auto">
-      <div className="p-6 grid grid-cols-1 gap-3 border-b border-stone-200">
+    <div className="flex flex-col h-full overflow-y-auto bg-[#FFFEF9] scrollbar-hide"
+         style={{
+           backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, #E8DCC8 31px, #E8DCC8 32px)',
+           backgroundPosition: '0 20px',
+         }}>
+      <div className="p-6 grid grid-cols-1 gap-4 border-b border-stone-200 relative z-10">
          <button 
            onClick={handleFindLocations}
            disabled={isSearchingMaps}
-           className="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-stone-200 hover:border-green-400 transition-all text-left group"
+           className="flex items-center gap-4 bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-amber-200/50 hover:border-amber-400 hover:shadow-md transition-all text-left group relative overflow-hidden"
          >
-           <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-green-600 group-hover:scale-110 transition-transform">
-             {isSearchingMaps ? <Loader2 size={16} className="animate-spin"/> : <MapPin size={16} />}
+           <div className="absolute top-0 left-0 w-1 h-full bg-emerald-400/50" />
+           <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
+             {isSearchingMaps ? <Loader2 size={18} className="animate-spin"/> : <MapPin size={18} />}
            </div>
            <div>
-              <div className="text-sm font-bold text-gray-900">Scout Locations</div>
-              <div className="text-xs text-gray-500">Find relevant spots</div>
+              <div className="text-sm font-bold text-stone-900 font-display">Scout Locations</div>
+              <div className="text-xs text-stone-500 font-hand italic">Find relevant local spots</div>
            </div>
          </button>
       </div>
 
-      <div className="p-6">
-        <h3 className="font-bold text-stone-900 text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
-          <ImageIcon size={16} />
+      <div className="p-6 relative z-10">
+        <h3 className="font-display font-bold text-stone-900 text-xs uppercase tracking-[0.2em] mb-6 flex items-center gap-2 opacity-60">
+          <ImageIcon size={14} />
           Visual Concepts
         </h3>
 
-        <div className="flex bg-stone-200/50 p-1 rounded-lg mb-4">
+        <div className="flex bg-stone-200/40 p-1 rounded-xl mb-6 backdrop-blur-sm border border-stone-200/50">
           <button 
              onClick={() => setVisualMode('artistic')}
-             className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-medium rounded-md transition-all ${visualMode === 'artistic' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+             className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-lg transition-all ${visualMode === 'artistic' ? 'bg-white shadow-md text-stone-900' : 'text-stone-500 hover:text-stone-700'}`}
           >
-            <Brush size={12} /> Artistic
+            <Brush size={14} /> Artistic
           </button>
           <button 
              onClick={() => setVisualMode('ui-flow')}
-             className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-medium rounded-md transition-all ${visualMode === 'ui-flow' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+             className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-lg transition-all ${visualMode === 'ui-flow' ? 'bg-white shadow-md text-stone-900' : 'text-stone-500 hover:text-stone-700'}`}
           >
-            <LayoutTemplate size={12} /> UI Flow
+            <LayoutTemplate size={14} /> UI Flow
           </button>
         </div>
         
-        <div className="space-y-3 mb-6">
-          <div className="flex gap-2 text-xs">
-            <select 
-              className="bg-white text-gray-900 border border-stone-200 rounded-lg p-2 w-1/2"
-              value={aspectRatio}
-              onChange={(e) => setAspectRatio(e.target.value as AspectRatio)}
-            >
-              <option value={AspectRatio.SQUARE}>1:1</option>
-              <option value={AspectRatio.PORTRAIT}>3:4</option>
-              <option value={AspectRatio.LANDSCAPE}>4:3</option>
-              <option value={AspectRatio.WIDE}>16:9</option>
-              <option value={AspectRatio.ULTRAWIDE}>21:9</option>
-            </select>
-             <select 
-              className="bg-white text-gray-900 border border-stone-200 rounded-lg p-2 w-1/2"
-              value={imgSize}
-              onChange={(e) => setImgSize(e.target.value as ImageSize)}
-            >
-              <option value={ImageSize.ONE_K}>1K</option>
-              <option value={ImageSize.TWO_K}>2K</option>
-              <option value={ImageSize.FOUR_K}>4K</option>
-            </select>
+        <div className="space-y-4 mb-8">
+          <div className="flex gap-3 text-xs">
+            <div className="relative flex-1">
+              <select 
+                className="w-full bg-white/80 backdrop-blur-sm text-stone-900 border border-amber-200/50 rounded-xl p-2.5 outline-none focus:border-amber-400 appearance-none font-bold"
+                value={aspectRatio}
+                onChange={(e) => setAspectRatio(e.target.value as AspectRatio)}
+              >
+                <option value={AspectRatio.SQUARE}>1:1 Square</option>
+                <option value={AspectRatio.PORTRAIT}>3:4 Portrait</option>
+                <option value={AspectRatio.LANDSCAPE}>4:3 Classic</option>
+                <option value={AspectRatio.WIDE}>16:9 Wide</option>
+                <option value={AspectRatio.ULTRAWIDE}>21:9 Ultra</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-30">
+                <ChevronRight size={14} className="rotate-90" />
+              </div>
+            </div>
+             <div className="relative flex-1">
+              <select 
+                className="w-full bg-white/80 backdrop-blur-sm text-stone-900 border border-amber-200/50 rounded-xl p-2.5 outline-none focus:border-amber-400 appearance-none font-bold"
+                value={imgSize}
+                onChange={(e) => setImgSize(e.target.value as ImageSize)}
+              >
+                <option value={ImageSize.ONE_K}>1K Quality</option>
+                <option value={ImageSize.TWO_K}>2K Studio</option>
+                <option value={ImageSize.FOUR_K}>4K Ultra</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-30">
+                <ChevronRight size={14} className="rotate-90" />
+              </div>
+            </div>
           </div>
           <button 
             onClick={handleGenerateImage}
             disabled={isGeneratingImg}
-            className="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-medium shadow-md hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-all text-sm"
+            className="w-full bg-[#2C2C2C] text-white py-3.5 rounded-xl font-bold shadow-xl hover:bg-black disabled:opacity-50 flex items-center justify-center gap-3 transition-all text-sm group"
           >
-            {isGeneratingImg ? <Loader2 size={16} className="animate-spin"/> : <RefreshCw size={16} />}
-            Generate
+            {isGeneratingImg ? <Loader2 size={18} className="animate-spin"/> : <RefreshCw size={18} className="group-hover:rotate-180 transition-transform duration-500" />}
+            Generate Concept
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
            {idea.images.slice().reverse().map((img, i) => {
              const imgUrl = getImageUrl(img);
              return (
-               <div key={img.id || i} className="relative group rounded-xl overflow-hidden shadow-sm border border-stone-100 bg-white cursor-pointer" onClick={() => setPreviewImage(imgUrl)}>
+               <div key={img.id || i} className="relative group rounded-sm overflow-hidden shadow-lg border-4 border-white bg-white cursor-pointer rotate-1 even:-rotate-1 hover:rotate-0 transition-transform duration-300" onClick={() => setPreviewImage(imgUrl)}>
                  <img src={imgUrl} alt="Concept" className="w-full object-cover" />
                  {img.style === 'ui-flow' && (
-                    <div className="absolute top-2 left-2 bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shadow-sm">
+                    <div className="absolute top-2 left-2 bg-indigo-600/90 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-sm font-bold uppercase tracking-widest shadow-sm">
                       UI Flow
                     </div>
                  )}
-                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPreviewImage(imgUrl);
-                      }} 
-                      className="text-white bg-white/20 backdrop-blur-md p-2 rounded-full hover:bg-white/40 transition-colors"
-                    >
-                      <Maximize2 size={18} />
-                    </button>
+                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="text-white bg-white/20 backdrop-blur-md p-3 rounded-full border border-white/30 shadow-2xl">
+                      <Maximize2 size={24} />
+                    </div>
                  </div>
                </div>
              );
@@ -243,17 +252,19 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
         </div>
         
         {idea.grounding_sources && idea.grounding_sources.length > 0 && (
-           <div className="mt-8 pt-6 border-t border-stone-200">
-             <h4 className="text-xs font-bold uppercase text-stone-400 mb-3">Grounding Sources</h4>
-             <div className="space-y-2">
+           <div className="mt-12 pt-8 border-t border-stone-200/60 relative">
+             <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 bg-[#FFFEF9] text-[10px] font-bold uppercase tracking-[0.3em] text-stone-400">
+               References
+             </div>
+             <div className="space-y-3">
                {idea.grounding_sources.slice(0, 5).map((source, idx) => {
                  const uri = source.web?.uri || source.maps?.uri || source.uri;
                  const title = source.web?.title || source.maps?.title || source.title || "Unknown Source";
                  if (!uri) return null;
                  return (
-                   <a key={idx} href={uri} target="_blank" rel="noreferrer" className="flex items-start gap-2 text-xs text-stone-600 hover:text-indigo-600 transition-colors p-2 hover:bg-stone-100 rounded-lg">
-                     <ExternalLink size={12} className="mt-0.5 flex-shrink-0" />
-                     <span className="line-clamp-2 leading-tight">{title}</span>
+                   <a key={idx} href={uri} target="_blank" rel="noreferrer" className="flex items-start gap-3 text-xs text-stone-600 hover:text-stone-900 transition-colors p-3 hover:bg-white/60 rounded-xl border border-transparent hover:border-amber-200/30 group">
+                     <ExternalLink size={14} className="mt-0.5 flex-shrink-0 opacity-40 group-hover:opacity-100" />
+                     <span className="line-clamp-2 leading-relaxed font-hand text-sm">{title}</span>
                    </a>
                  );
                })}
@@ -261,6 +272,7 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
            </div>
         )}
       </div>
+      <div className="absolute top-0 right-4 w-6 h-10 bg-rose-400/10 rounded-b-sm pointer-events-none" />
     </div>
   );
 
