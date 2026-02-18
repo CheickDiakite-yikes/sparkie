@@ -52,6 +52,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   const [isRuntimeExpanded, setIsRuntimeExpanded] = useState(false);
   const [isUsageExpanded, setIsUsageExpanded] = useState(false);
   const [isAccountExpanded, setIsAccountExpanded] = useState(false);
+  const [isFavoritesExpanded, setIsFavoritesExpanded] = useState(false);
 
   const loadProfile = async () => {
     setLoading(true);
@@ -215,80 +216,88 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
             </section>
           </div>
 
-          <section className="rounded-2xl border border-stone-200 bg-white/75 p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-xl text-stone-900 flex items-center gap-2">
-                <Star size={18} />
-                Favorites Board
-              </h3>
-              <span className="text-xs uppercase tracking-[0.2em] text-stone-500">
-                {favorites.length} saved
-              </span>
-            </div>
-
-            {favorites.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-stone-300 bg-[#FFFEF9] p-5 text-stone-500">
-                No favorites yet. Star ideas below to pin them on your board.
+          <section className="rounded-2xl border border-stone-200 bg-white/75 shadow-sm overflow-hidden transition-all duration-300">
+            <button 
+              onClick={() => setIsFavoritesExpanded(!isFavoritesExpanded)}
+              className="w-full p-5 flex items-center justify-between hover:bg-stone-50 transition-colors text-left"
+            >
+              <div className="flex items-center gap-2">
+                <Star size={18} className="text-stone-900" />
+                <h3 className="font-display text-xl text-stone-900">Favorites Board</h3>
+                <span className="ml-2 text-xs uppercase tracking-[0.2em] text-stone-500">
+                  {favorites.length} saved
+                </span>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mb-4">
-                {favorites.map((idea) => (
-                  <div
-                    key={idea.id}
-                    className="rounded-xl border border-stone-200 bg-white p-4 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <button
-                        onClick={() => onOpenIdea(idea)}
-                        className="text-left flex-1 min-w-0"
+              <ChevronDown className={`text-stone-400 transition-transform duration-300 ${isFavoritesExpanded ? 'rotate-180' : ''}`} size={20} />
+            </button>
+
+            <div className={`transition-all duration-300 ease-in-out ${isFavoritesExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
+              <div className="p-5 pt-0 space-y-4">
+                {favorites.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-stone-300 bg-[#FFFEF9] p-5 text-stone-500">
+                    No favorites yet. Star ideas below to pin them on your board.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {favorites.map((idea) => (
+                      <div
+                        key={idea.id}
+                        className="rounded-xl border border-stone-200 bg-white p-4 hover:shadow-md transition-shadow"
                       >
-                        <h4 className="font-display text-lg text-stone-900 truncate">{idea.title}</h4>
-                        <p className="text-xs text-stone-500 mt-1">
-                          Updated {new Date(idea.updated_at).toLocaleDateString()}
-                        </p>
-                      </button>
-                      <button
-                        onClick={() => handleToggleFavoriteClick(idea)}
-                        disabled={favoriteBusyIdeaId === idea.id}
-                        className="p-2 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors disabled:opacity-50"
-                        title="Remove favorite"
-                      >
-                        {favoriteBusyIdeaId === idea.id ? (
-                          <Loader2 size={14} className="animate-spin" />
-                        ) : (
-                          <Star size={14} fill="currentColor" />
-                        )}
-                      </button>
+                        <div className="flex items-start justify-between gap-2">
+                          <button
+                            onClick={() => onOpenIdea(idea)}
+                            className="text-left flex-1 min-w-0"
+                          >
+                            <h4 className="font-display text-lg text-stone-900 truncate">{idea.title}</h4>
+                            <p className="text-xs text-stone-500 mt-1">
+                              Updated {new Date(idea.updated_at).toLocaleDateString()}
+                            </p>
+                          </button>
+                          <button
+                            onClick={() => handleToggleFavoriteClick(idea)}
+                            disabled={favoriteBusyIdeaId === idea.id}
+                            className="p-2 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors disabled:opacity-50"
+                            title="Remove favorite"
+                          >
+                            {favoriteBusyIdeaId === idea.id ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Star size={14} fill="currentColor" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {suggestionIdeas.length > 0 && (
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-stone-500 mb-2">
+                      Quick Add
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {suggestionIdeas.map((idea) => (
+                        <button
+                          key={idea.id}
+                          onClick={() => handleToggleFavoriteClick(idea)}
+                          disabled={favoriteBusyIdeaId === idea.id}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors disabled:opacity-50"
+                        >
+                          {favoriteBusyIdeaId === idea.id ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <Sparkles size={12} />
+                          )}
+                          <span className="text-sm">{idea.title}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                ))}
+                )}
               </div>
-            )}
-
-            {suggestionIdeas.length > 0 && (
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-stone-500 mb-2">
-                  Quick Add
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {suggestionIdeas.map((idea) => (
-                    <button
-                      key={idea.id}
-                      onClick={() => handleToggleFavoriteClick(idea)}
-                      disabled={favoriteBusyIdeaId === idea.id}
-                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors disabled:opacity-50"
-                    >
-                      {favoriteBusyIdeaId === idea.id ? (
-                        <Loader2 size={12} className="animate-spin" />
-                      ) : (
-                        <Sparkles size={12} />
-                      )}
-                      <span className="text-sm">{idea.title}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            </div>
           </section>
 
           <section className="rounded-2xl border border-stone-200 bg-white/80 shadow-sm overflow-hidden transition-all duration-300">
