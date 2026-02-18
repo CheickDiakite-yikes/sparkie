@@ -387,41 +387,40 @@ router.post('/:id/generate-image', async (req: Request, res: Response) => {
       `;
     }
 
-    const aspectMap: Record<string, string> = {
-      '1:1': '1:1',
-      '16:9': '16:9',
-      '9:16': '9:16',
-      '4:3': '4:3',
-      '3:4': '3:4',
-    };
-
     try {
-      const response = await ai.models.generateImages({
-        model: 'imagen-3.0-generate-002',
-        prompt: finalPrompt,
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-preview-05-20',
+        contents: finalPrompt,
         config: {
-          numberOfImages: 1,
-          aspectRatio: aspectMap[aspect_ratio] || '1:1',
+          responseModalities: ['TEXT', 'IMAGE'],
         },
       });
 
-      if (!response.generatedImages || response.generatedImages.length === 0) {
-        return res.status(400).json({
-          error: "Image generation returned no results. The prompt may have been filtered by safety settings. Try rephrasing your concept description."
-        });
+      let imageData: string | null = null;
+      let textResponse: string | null = null;
+
+      const parts = response.candidates?.[0]?.content?.parts || [];
+      for (const part of parts) {
+        if (part.inlineData) {
+          imageData = part.inlineData.data || null;
+          break;
+        }
+        if (part.text) {
+          textResponse = part.text;
+        }
       }
 
-      const imageBytes = response.generatedImages[0].image?.imageBytes;
-      if (!imageBytes) {
+      if (!imageData) {
+        console.error('No image data in response. Text response:', textResponse);
         return res.status(400).json({
-          error: "Image generation completed but no image data was returned. Please try again."
+          error: "Image generation returned no image. The prompt may have been filtered by safety settings. Try rephrasing your concept description."
         });
       }
 
       const { Client } = await import('@replit/object-storage');
       const client = new Client();
       const storageKey = `images/idea-${ideaId}/${Date.now()}.png`;
-      const buffer = Buffer.from(imageBytes, 'base64');
+      const buffer = Buffer.from(imageData, 'base64');
 
       await client.uploadFromBytes(storageKey, buffer);
 
@@ -432,13 +431,10 @@ router.post('/:id/generate-image', async (req: Request, res: Response) => {
 
       return res.json({ storage_key: storageKey, url: `/api/images/${encodeURIComponent(storageKey)}` });
     } catch (imgError: any) {
-      console.error('Image generation error:', imgError);
-      if (imgError.message?.includes('not found') || imgError.message?.includes('not supported')) {
-        return res.status(400).json({
-          error: "The Imagen model is not available with the current API key. Image generation requires a Gemini API key with Imagen access enabled."
-        });
-      }
-      throw imgError;
+      console.error('Image generation error:', imgError?.message || imgError);
+      return res.status(500).json({
+        error: "Image generation failed. Please try again with a different prompt."
+      });
     }
   } catch (error) {
     console.error('Image generation error:', error);
