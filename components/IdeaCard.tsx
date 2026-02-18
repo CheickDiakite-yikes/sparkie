@@ -8,7 +8,8 @@ interface IdeaCardProps {
 }
 
 const IdeaCard: React.FC<IdeaCardProps> = ({ idea, onClick }) => {
-  const previewText = idea.analysis?.executive_summary || idea.notes?.[0]?.text || "New Idea";
+  const rawPreview = idea.analysis?.executive_summary || idea.notes?.[0]?.text || "New Idea";
+  const previewText = rawPreview.replace(/\*\*/g, '');
 
   return (
     <div 
