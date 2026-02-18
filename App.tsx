@@ -9,7 +9,6 @@ import { analyzeIdeaRecursive } from './services/geminiService';
 import { getAllIdeas, saveIdea, migrateFromLocalStorage } from './services/db';
 import { Idea } from './types';
 import ErrorBoundary from './components/ErrorBoundary';
-import DebugOverlay from './components/DebugOverlay';
 
 // Palette for random card colors
 const CARD_COLORS = [
@@ -169,7 +168,6 @@ const App: React.FC = () => {
   if (currentView === 'landing') {
     return (
       <>
-        <DebugOverlay />
         <LandingPage 
             onEnterApp={() => setCurrentView('dashboard')} 
             onViewSocialCard={() => setShowSocialCard(true)}
@@ -182,7 +180,6 @@ const App: React.FC = () => {
   // DASHBOARD VIEW
   return (
     <div className="min-h-screen pb-20 relative bg-[#FDFBF7]">
-      <DebugOverlay />
       
       {/* Header */}
       <header className="sticky top-0 z-20 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-stone-200/50 py-4 px-4 md:px-12 flex items-center justify-between">

@@ -26,7 +26,7 @@ const IdeaCard: React.FC<IdeaCardProps> = ({ idea, onClick }) => {
       {/* Tape Effect */}
       <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-24 h-8 bg-white/30 rotate-2 backdrop-blur-sm shadow-sm pointer-events-none" />
 
-      <div className="pointer-events-none">
+      <div>
         <h3 className="font-display text-2xl md:text-3xl text-gray-900 leading-tight mb-2 line-clamp-2">
           {idea.title}
         </h3>
@@ -35,7 +35,7 @@ const IdeaCard: React.FC<IdeaCardProps> = ({ idea, onClick }) => {
         </p>
       </div>
 
-      <div className="flex items-center justify-between mt-4 pointer-events-none">
+      <div className="flex items-center justify-between mt-4">
         <div className="flex gap-1 flex-wrap">
           {idea.tags.map(tag => (
             <span key={tag} className="text-[10px] md:text-xs font-bold uppercase tracking-wider bg-black/5 px-2 py-1 rounded-md text-black/60">
