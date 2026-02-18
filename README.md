@@ -351,4 +351,4 @@ See `CONTRIBUTING.md`.
 
 ## License
 
-No license file is currently present in this repository. Add a `LICENSE` file before public redistribution if needed.
+This project is open source under the MIT License. See `LICENSE` for details.

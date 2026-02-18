@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Sparkles, LogOut, Home, UserRound } from 'lucide-react';
+import { Plus, LogOut, Home, UserRound } from 'lucide-react';
 import IdeaCard from './components/IdeaCard';
 import ChatWidget from './components/ChatWidget';
 import IdeaDetailModal from './components/IdeaDetailModal';
@@ -9,6 +9,7 @@ import ProfilePage from './components/ProfilePage';
 import { authAPI, ideasAPI, aiAPI } from './services/api';
 import { Idea, User } from './types';
 import ErrorBoundary from './components/ErrorBoundary';
+import BrandMark from './components/BrandMark';
 
 const CARD_COLORS = [
   '#FFD6E0',
@@ -167,9 +168,7 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center shadow-lg animate-pulse">
-            <Sparkles className="text-white w-7 h-7" />
-          </div>
+          <BrandMark className="w-14 h-14 rounded-2xl animate-pulse" />
           <p className="text-stone-400 font-hand text-lg">Loading Insparkie...</p>
         </div>
       </div>
@@ -197,13 +196,7 @@ const App: React.FC = () => {
           className="flex items-center gap-2.5 group hover:opacity-80 transition-opacity"
           title="Back to Home"
         >
-          <div className="relative w-9 h-9 bg-black rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-stone-800 to-black" />
-            <div className="relative flex items-center justify-center">
-              <Sparkles className="text-amber-300 w-5 h-5 animate-pulse" />
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full animate-ping opacity-20" />
-            </div>
-          </div>
+          <BrandMark className="w-9 h-9 rounded-xl group-hover:rotate-6 transition-transform" />
           <h1 className="font-display text-2xl font-bold tracking-tight text-stone-900">Insparkie</h1>
         </button>
         

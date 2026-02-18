@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Sparkles, ArrowRight, BrainCircuit, Palette, Zap, ChevronDown, Leaf } from 'lucide-react';
+import BrandMark from './BrandMark';
 
 interface LandingPageProps {
   onEnterApp: () => void;
@@ -55,13 +56,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 px-6 py-4 flex justify-between items-center bg-[#FDFBF7]/80 backdrop-blur-md border-b border-stone-100 transition-all duration-300">
         <div className="flex items-center gap-2.5 group cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-          <div className="relative w-10 h-10 bg-black rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-stone-800 to-black" />
-            <div className="relative flex items-center justify-center">
-              <Sparkles className="text-amber-300 w-6 h-6 animate-pulse" />
-              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-white rounded-full animate-ping opacity-20" />
-            </div>
-          </div>
+          <BrandMark className="w-10 h-10 rounded-xl group-hover:rotate-6 transition-transform" />
           <span className="font-display text-2xl font-bold tracking-tight text-stone-900">Insparkie</span>
         </div>
         <button 
@@ -294,10 +289,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       <footer className="bg-white border-t border-stone-200 py-12 px-6">
          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-2.5 opacity-60 grayscale hover:grayscale-0 transition-all">
-              <div className="relative w-8 h-8 bg-black rounded-lg flex items-center justify-center overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-stone-800 to-black" />
-                <Sparkles className="relative text-amber-300 w-4 h-4" />
-              </div>
+              <BrandMark className="w-8 h-8 rounded-lg" />
               <span className="font-display text-xl font-bold text-stone-900">Insparkie</span>
             </div>
             

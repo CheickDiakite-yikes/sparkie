@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Sparkles, Eye, EyeOff, Loader2, Leaf, PenLine } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Leaf, PenLine } from 'lucide-react';
 import { authAPI } from '../services/api';
 import { User } from '../types';
+import BrandMark from './BrandMark';
 
 interface AuthPageProps {
   onAuthSuccess: (user: User) => void;
@@ -111,9 +112,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
 
       <div className="relative z-10 w-full max-w-sm sm:max-w-md flex flex-col items-center">
         <div className="flex flex-col items-center mb-4 sm:mb-6 shrink-0">
-          <div className="w-11 h-11 sm:w-14 sm:h-14 bg-[#2C2C2C] rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg mb-2 sm:mb-3">
-            <Sparkles className="text-amber-200 w-5 h-5 sm:w-7 sm:h-7" />
-          </div>
+          <BrandMark className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl mb-2 sm:mb-3" />
           <h1 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-gray-900">Insparkie</h1>
           <p className="font-hand text-sm sm:text-lg text-stone-600 mt-0.5">
             {mode === 'signup' ? 'Plant your first idea today' : 'Welcome back, gardener'}
