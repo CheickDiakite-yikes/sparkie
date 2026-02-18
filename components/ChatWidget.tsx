@@ -137,9 +137,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentIdeaContext, onUpdateIde
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder={currentIdeaContext ? "Write a note to Muse..." : "Open an idea to chat..."}
-                disabled={!currentIdeaContext}
-                className="flex-1 bg-transparent px-3 py-1 outline-none text-sm text-stone-800 placeholder-stone-400 disabled:opacity-50 font-hand"
+                placeholder={currentIdeaContext ? "Write a note to Muse..." : "Select a seed to chat..."}
+                className="flex-1 bg-transparent px-3 py-1 outline-none text-sm text-stone-800 placeholder-stone-400 font-hand"
               />
               <button 
                 onClick={handleSend}
