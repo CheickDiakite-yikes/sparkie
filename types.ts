@@ -1,3 +1,12 @@
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  job_role?: string;
+  referral_source?: string;
+  created_at: string;
+}
+
 export interface GroundingChunk {
   web?: {
     uri: string;
@@ -12,54 +21,64 @@ export interface GroundingChunk {
       }[];
     }[];
   };
+  source_type?: string;
+  uri?: string;
+  title?: string;
 }
 
 export interface GeneratedImage {
+  id: number;
+  idea_id?: number;
+  storage_key: string;
   url: string;
   prompt: string;
-  aspectRatio: string;
+  aspect_ratio: string;
   style?: 'artistic' | 'ui-flow';
 }
 
 export interface UserNote {
-  id: string;
+  id: number;
+  idea_id: number;
   text: string;
-  timestamp: number;
+  created_at: string;
+  timestamp?: number;
 }
 
 export interface AIAnalysisSections {
-  executiveSummary: string;
-  marketResearch: string;
+  executive_summary: string;
+  market_research: string;
   prd: string;
   uiux: string;
-  oneShotPrompt: string;
+  one_shot_prompt: string;
 }
 
 export interface Idea {
-  id: string;
+  id: number;
+  user_id: number;
   title: string;
-  // Deprecated single prompt, kept for legacy migration if needed, but we prefer userNotes now
-  initialPrompt: string; 
-  userNotes: UserNote[];
-  
-  // Structured AI output
-  analysis: AIAnalysisSections;
-  
+  initial_prompt: string;
   status: 'new' | 'processing' | 'ready' | 'error';
   tags: string[];
-  createdAt: number;
-  updatedAt: number;
   color: string;
+  created_at: string;
+  updated_at: string;
+  notes: UserNote[];
+  analysis: AIAnalysisSections;
   images: GeneratedImage[];
-  groundingSources: GroundingChunk[];
-  chatHistory: ChatMessage[];
+  grounding_sources: GroundingChunk[];
+  chat_messages: ChatMessage[];
+  userNotes?: UserNote[];
+  groundingSources?: GroundingChunk[];
+  chatHistory?: ChatMessage[];
 }
 
 export interface ChatMessage {
-  id: string;
+  id: number;
+  idea_id?: number;
   role: 'user' | 'model';
   text: string;
-  isThinking?: boolean;
+  is_thinking?: boolean;
+  created_at?: string;
 }
 
 export enum AspectRatio {

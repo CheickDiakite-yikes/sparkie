@@ -8,8 +8,7 @@ interface IdeaCardProps {
 }
 
 const IdeaCard: React.FC<IdeaCardProps> = ({ idea, onClick }) => {
-  // Use exec summary if available, otherwise fallback to first note
-  const previewText = idea.analysis?.executiveSummary || idea.userNotes?.[0]?.text || "New Idea";
+  const previewText = idea.analysis?.executive_summary || idea.notes?.[0]?.text || "New Idea";
 
   return (
     <div 
@@ -23,7 +22,6 @@ const IdeaCard: React.FC<IdeaCardProps> = ({ idea, onClick }) => {
       `}
       style={{ backgroundColor: idea.color }}
     >
-      {/* Tape Effect */}
       <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-24 h-8 bg-white/30 rotate-2 backdrop-blur-sm shadow-sm pointer-events-none" />
 
       <div>
@@ -55,7 +53,6 @@ const IdeaCard: React.FC<IdeaCardProps> = ({ idea, onClick }) => {
         </div>
       </div>
       
-      {/* Texture overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-black/5 pointer-events-none mix-blend-overlay" />
     </div>
   );

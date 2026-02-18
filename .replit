@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web"]
+modules = ["nodejs-20", "web", "postgresql-16"]
 run = "npm run dev"
 
 [nix]
@@ -19,7 +19,11 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 5001
+localPort = 5173
+externalPort = 5173
+
+[[ports]]
+localPort = 24678
 externalPort = 3000
 
 [workflows]
@@ -38,15 +42,23 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
 
-[workflows.workflow.metadata]
-outputType = "webview"
-
 [deployment]
 deploymentTarget = "static"
 build = ["npm", "run", "build"]
 publicDir = "dist"
+
+[objectStorage]
+defaultBucketID = "replit-objstore-0c0abee1-de7c-4636-8c9d-f498e95f453a"
+
+[userenv]
+
+[userenv.shared]
+REPLIT_OBJECT_STORAGE_BUCKET_ID = "replit-objstore-0c0abee1-de7c-4636-8c9d-f498e95f453a"

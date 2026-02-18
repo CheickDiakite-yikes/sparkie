@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Idea, AspectRatio, ImageSize, UserNote } from '../types';
+import { Idea, AspectRatio, ImageSize } from '../types';
 import { X, RefreshCw, Image as ImageIcon, MapPin, ExternalLink, Loader2, Maximize2, Send, NotebookPen, Bot, FileText, Palette, Globe, ChevronRight, LayoutTemplate, Brush, Wrench, Terminal, Copy, Check, Download } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { generateConceptImage, findRelevantPlaces } from '../services/geminiService';
+import { ideasAPI, aiAPI } from '../services/api';
 
 interface IdeaDetailModalProps {
   idea: Idea;
@@ -14,72 +14,34 @@ type Tab = 'notebook' | 'blueprints' | 'tools';
 type BlueprintSection = 'executive' | 'market' | 'prd' | 'uiux' | 'oneShotPrompt';
 type VisualMode = 'artistic' | 'ui-flow';
 
-// Helper to compress base64 image
-const compressImage = (base64Str: string, maxWidth = 1200, quality = 0.7): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.src = base64Str;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-
-      // Scale down if necessary
-      if (width > maxWidth) {
-        height *= maxWidth / width;
-        width = maxWidth;
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-          resolve(base64Str); // Fallback
-          return;
-      }
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality)); // Compress to JPEG
-    };
-    img.onerror = () => resolve(base64Str); // Fallback
-  });
-};
-
 const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpdateIdea }) => {
   const [activeTab, setActiveTab] = useState<Tab>('blueprints');
   const [activeBlueprint, setActiveBlueprint] = useState<BlueprintSection>('executive');
   
-  // Note Input State
   const [noteInput, setNoteInput] = useState('');
   const notesEndRef = useRef<HTMLDivElement>(null);
 
-  // Tools State
   const [isGeneratingImg, setIsGeneratingImg] = useState(false);
   const [isSearchingMaps, setIsSearchingMaps] = useState(false);
   const [visualMode, setVisualMode] = useState<VisualMode>('artistic');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>(AspectRatio.SQUARE);
   const [imgSize, setImgSize] = useState<ImageSize>(ImageSize.ONE_K);
   
-  // Preview State
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  
-  // Prompt Copy State
   const [copied, setCopied] = useState(false);
 
-  // Mounted Ref
   const isMounted = useRef(true);
   useEffect(() => {
     isMounted.current = true;
     return () => { isMounted.current = false; };
   }, []);
 
-  // Scroll to bottom of notes
   useEffect(() => {
     if (activeTab === 'notebook') {
       notesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [activeTab, idea.userNotes]);
+  }, [activeTab, idea.notes]);
 
-  // Auto-switch defaults when changing visual mode
   useEffect(() => {
     if (visualMode === 'ui-flow') {
         setAspectRatio(AspectRatio.WIDE);
@@ -90,42 +52,37 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
     }
   }, [visualMode]);
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (!noteInput.trim()) return;
     
-    const newNote: UserNote = {
-      id: Date.now().toString(),
-      text: noteInput,
-      timestamp: Date.now()
-    };
-
-    const updatedIdea = {
-      ...idea,
-      userNotes: [...idea.userNotes, newNote],
-      status: 'processing' as const
-    };
-
+    const text = noteInput;
     setNoteInput('');
-    onUpdateIdea(updatedIdea, true);
+
+    try {
+      await ideasAPI.addNote(idea.id, text);
+      aiAPI.analyze(idea.id).catch(console.error);
+      const freshIdea = await ideasAPI.get(idea.id);
+      if (isMounted.current) {
+        onUpdateIdea(freshIdea.idea, false);
+      }
+    } catch (e) {
+      console.error("Failed to add note:", e);
+    }
   };
 
   const handleGenerateImage = async () => {
     setIsGeneratingImg(true);
     try {
-      let prompt = "";
-      const baseContext = idea.analysis?.uiux || idea.userNotes[0]?.text;
-      
-      if (visualMode === 'ui-flow') {
-        prompt = `Screens for "${idea.title}". Context: ${baseContext}`;
-      } else {
-        prompt = `Concept art for "${idea.title}". Context: ${baseContext}. Artistic, detailed.`;
-      }
+      const result = await aiAPI.generateImage(idea.id, {
+        visual_mode: visualMode,
+        aspect_ratio: aspectRatio,
+        image_size: imgSize,
+      });
 
-      const rawUrl = await generateConceptImage(prompt, aspectRatio, imgSize, visualMode);
-      const compressedUrl = await compressImage(rawUrl);
-      const newImage = { url: compressedUrl, prompt, aspectRatio, style: visualMode };
-      
-      onUpdateIdea({ ...idea, images: [...idea.images, newImage] });
+      const freshIdea = await ideasAPI.get(idea.id);
+      if (isMounted.current) {
+        onUpdateIdea(freshIdea.idea, false);
+      }
     } catch (e) {
       alert("Failed to generate image.");
     } finally {
@@ -136,34 +93,31 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
   const handleFindLocations = async () => {
     setIsSearchingMaps(true);
     try {
-       navigator.geolocation.getCurrentPosition(async (pos) => {
-         const { latitude, longitude } = pos.coords;
-         const result = await findRelevantPlaces(
-           `Find places related to: ${idea.title}. ${idea.userNotes[0]?.text}`, 
-           { lat: latitude, lng: longitude }
-         );
-         if (!isMounted.current) return;
-         const updatedGrounding = [...idea.groundingSources, ...result.groundingChunks];
-         onUpdateIdea({ ...idea, groundingSources: updatedGrounding });
-         setIsSearchingMaps(false);
-       }, () => {
-         findRelevantPlaces(`Find places related to: ${idea.title}.`)
-           .then(result => {
-              if (!isMounted.current) return;
-              const updatedGrounding = [...idea.groundingSources, ...result.groundingChunks];
-              onUpdateIdea({ ...idea, groundingSources: updatedGrounding });
-           })
-           .finally(() => {
-               if (isMounted.current) setIsSearchingMaps(false);
-           });
-       });
+      const doSearch = async (location?: { lat: number; lng: number }) => {
+        await aiAPI.findPlaces(idea.id, location);
+        const freshIdea = await ideasAPI.get(idea.id);
+        if (isMounted.current) {
+          onUpdateIdea(freshIdea.idea, false);
+        }
+      };
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          await doSearch({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          if (isMounted.current) setIsSearchingMaps(false);
+        },
+        async () => {
+          await doSearch();
+          if (isMounted.current) setIsSearchingMaps(false);
+        }
+      );
     } catch (e) {
       if (isMounted.current) setIsSearchingMaps(false);
     }
   };
 
   const handleCopyPrompt = () => {
-    const text = idea.analysis?.oneShotPrompt || "";
+    const text = idea.analysis?.one_shot_prompt || "";
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -173,19 +127,24 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
   const getBlueprintContent = () => {
     if (!idea.analysis) return "Initializing Analysis...";
     switch (activeBlueprint) {
-      case 'executive': return idea.analysis.executiveSummary;
-      case 'market': return idea.analysis.marketResearch;
+      case 'executive': return idea.analysis.executive_summary;
+      case 'market': return idea.analysis.market_research;
       case 'prd': return idea.analysis.prd;
       case 'uiux': return idea.analysis.uiux;
-      case 'oneShotPrompt': return idea.analysis.oneShotPrompt || "Prompt generation in progress...";
+      case 'oneShotPrompt': return idea.analysis.one_shot_prompt || "Prompt generation in progress...";
       default: return "";
     }
   };
 
-  // Reusable Tools Panel
+  const getImageUrl = (img: any) => {
+    if (img.storage_key) {
+      return `/api/images/${img.storage_key}`;
+    }
+    return img.url;
+  };
+
   const ToolsPanel = () => (
     <div className="flex flex-col h-full overflow-y-auto">
-      {/* Action Bar */}
       <div className="p-6 grid grid-cols-1 gap-3 border-b border-stone-200">
          <button 
            onClick={handleFindLocations}
@@ -202,14 +161,12 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
          </button>
       </div>
 
-      {/* Image Gen Section */}
       <div className="p-6">
         <h3 className="font-bold text-stone-900 text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
           <ImageIcon size={16} />
           Visual Concepts
         </h3>
 
-        {/* Visual Mode Selector */}
         <div className="flex bg-stone-200/50 p-1 rounded-lg mb-4">
           <button 
              onClick={() => setVisualMode('artistic')}
@@ -258,39 +215,40 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
           </button>
         </div>
 
-        {/* Gallery */}
         <div className="space-y-4">
-           {idea.images.slice().reverse().map((img, i) => (
-             <div key={i} className="relative group rounded-xl overflow-hidden shadow-sm border border-stone-100 bg-white cursor-pointer" onClick={() => setPreviewImage(img.url)}>
-               <img src={img.url} alt="Concept" className="w-full object-cover" />
-               {img.style === 'ui-flow' && (
-                  <div className="absolute top-2 left-2 bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shadow-sm">
-                    UI Flow
-                  </div>
-               )}
-               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPreviewImage(img.url);
-                    }} 
-                    className="text-white bg-white/20 backdrop-blur-md p-2 rounded-full hover:bg-white/40 transition-colors"
-                  >
-                    <Maximize2 size={18} />
-                  </button>
+           {idea.images.slice().reverse().map((img, i) => {
+             const imgUrl = getImageUrl(img);
+             return (
+               <div key={img.id || i} className="relative group rounded-xl overflow-hidden shadow-sm border border-stone-100 bg-white cursor-pointer" onClick={() => setPreviewImage(imgUrl)}>
+                 <img src={imgUrl} alt="Concept" className="w-full object-cover" />
+                 {img.style === 'ui-flow' && (
+                    <div className="absolute top-2 left-2 bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shadow-sm">
+                      UI Flow
+                    </div>
+                 )}
+                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewImage(imgUrl);
+                      }} 
+                      className="text-white bg-white/20 backdrop-blur-md p-2 rounded-full hover:bg-white/40 transition-colors"
+                    >
+                      <Maximize2 size={18} />
+                    </button>
+                 </div>
                </div>
-             </div>
-           ))}
+             );
+           })}
         </div>
         
-        {/* Grounding Sources */}
-        {idea.groundingSources && idea.groundingSources.length > 0 && (
+        {idea.grounding_sources && idea.grounding_sources.length > 0 && (
            <div className="mt-8 pt-6 border-t border-stone-200">
              <h4 className="text-xs font-bold uppercase text-stone-400 mb-3">Grounding Sources</h4>
              <div className="space-y-2">
-               {idea.groundingSources.slice(0, 5).map((source, idx) => {
-                 const uri = source.web?.uri || source.maps?.uri;
-                 const title = source.web?.title || source.maps?.title || "Unknown Source";
+               {idea.grounding_sources.slice(0, 5).map((source, idx) => {
+                 const uri = source.web?.uri || source.maps?.uri || source.uri;
+                 const title = source.web?.title || source.maps?.title || source.title || "Unknown Source";
                  if (!uri) return null;
                  return (
                    <a key={idx} href={uri} target="_blank" rel="noreferrer" className="flex items-start gap-2 text-xs text-stone-600 hover:text-indigo-600 transition-colors p-2 hover:bg-stone-100 rounded-lg">
@@ -313,7 +271,6 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
         className="bg-[#FDFBF7] w-full max-w-7xl h-[90vh] rounded-[32px] shadow-2xl overflow-hidden flex flex-col md:flex-row relative animate-float"
         style={{ animationDuration: '0.4s', animationIterationCount: 1 }}
       >
-        {/* Close Button */}
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 z-50 p-2 bg-black/5 hover:bg-black/10 rounded-full transition-colors md:top-4 md:right-4"
@@ -321,7 +278,6 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
           <X size={24} />
         </button>
 
-        {/* SIDEBAR NAVIGATION */}
         <div className="w-full md:w-64 bg-stone-100 border-b md:border-b-0 md:border-r border-stone-200 flex flex-col flex-shrink-0 max-h-[40vh] md:max-h-full">
            <div className="p-4 md:p-6 border-b border-stone-200 bg-stone-50">
              <h2 className="font-display text-xl md:text-2xl text-gray-900 leading-tight mb-1 line-clamp-1 md:line-clamp-2">{idea.title}</h2>
@@ -364,7 +320,6 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
                 </button>
               ))}
 
-              {/* Mobile Only Tools Tab */}
               <button 
                 onClick={() => setActiveTab('tools')}
                 className={`xl:hidden w-full text-left px-3 py-2 md:px-4 md:py-3 rounded-xl flex items-center gap-3 transition-colors mt-2 ${activeTab === 'tools' ? 'bg-white shadow-sm text-black ring-1 ring-black/5' : 'text-gray-500 hover:bg-stone-200/50'}`}
@@ -382,14 +337,12 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
            </div>
         </div>
 
-        {/* MAIN CONTENT AREA */}
         <div className="flex-1 flex flex-col min-w-0 bg-white h-full overflow-hidden">
           
-          {/* NOTEBOOK TAB */}
           {activeTab === 'notebook' && (
             <div className="flex-1 flex flex-col h-full">
               <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 md:space-y-6 bg-stone-50/50">
-                {idea.userNotes.map((note) => (
+                {(idea.notes || []).map((note) => (
                   <div key={note.id} className="flex gap-3 md:gap-4 group">
                     <div className="flex flex-col items-center">
                        <div className="w-2 h-2 rounded-full bg-stone-300 mt-2 group-hover:bg-stone-400 transition-colors" />
@@ -397,7 +350,7 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
                     </div>
                     <div className="flex-1 pb-4">
                       <div className="text-xs font-medium text-stone-400 mb-1 font-mono">
-                        {new Date(note.timestamp).toLocaleString()}
+                        {new Date(note.created_at || note.timestamp || 0).toLocaleString()}
                       </div>
                       <div className="bg-white p-4 md:p-5 rounded-2xl rounded-tl-none shadow-sm border border-stone-100 text-gray-800 font-hand text-lg md:text-xl leading-relaxed whitespace-pre-wrap">
                         {note.text}
@@ -429,7 +382,6 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
             </div>
           )}
 
-          {/* BLUEPRINTS TAB */}
           {activeTab === 'blueprints' && (
             <div className="flex-1 flex flex-col h-full relative">
                <div className="px-4 py-4 md:px-8 md:py-6 border-b border-stone-100 bg-white sticky top-0 z-10 flex items-center justify-between">
@@ -442,11 +394,10 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
                         {activeBlueprint === 'oneShotPrompt' && "One-Shot Build Prompt"}
                     </h2>
                     <p className="text-stone-500 text-xs md:text-sm mt-1">
-                    Generated by Gemini 3 Flash Agents • Last updated {new Date(idea.updatedAt || idea.createdAt).toLocaleTimeString()}
+                    Generated by Gemini 3 Flash Agents • Last updated {new Date(idea.updated_at || idea.created_at).toLocaleTimeString()}
                     </p>
                  </div>
                  
-                 {/* COPY BUTTON FOR ONE SHOT */}
                  {activeBlueprint === 'oneShotPrompt' && (
                      <button 
                        onClick={handleCopyPrompt}
@@ -469,7 +420,6 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
                    </div>
                  ) : (
                     activeBlueprint === 'oneShotPrompt' ? (
-                       // ONE SHOT TERMINAL VIEW
                        <div className="relative rounded-xl overflow-hidden shadow-2xl bg-[#1e1e1e] ring-1 ring-white/10 group">
                          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 to-purple-500/10 opacity-50 pointer-events-none" />
                          <div className="bg-[#2d2d2d] px-4 py-2 flex items-center gap-2 border-b border-gray-700 relative z-10">
@@ -490,7 +440,6 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
                          </div>
                        </div>
                     ) : (
-                       // STANDARD MARKDOWN VIEW
                        <div className="prose prose-stone max-w-none prose-headings:font-display prose-headings:font-normal prose-p:text-gray-600 prose-li:text-gray-600">
                            <ReactMarkdown>{getBlueprintContent()}</ReactMarkdown>
                        </div>
@@ -500,7 +449,6 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
             </div>
           )}
 
-          {/* MOBILE TOOLS TAB */}
           {activeTab === 'tools' && (
              <div className="xl:hidden flex-1 overflow-y-auto bg-stone-50">
                <ToolsPanel />
@@ -508,14 +456,12 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
           )}
         </div>
 
-        {/* RIGHT PANEL: TOOLS (DESKTOP ONLY) */}
         <div className="hidden xl:flex w-80 bg-stone-50 border-l border-stone-200 flex-col h-full overflow-y-auto">
           <ToolsPanel />
         </div>
       </div>
     </div>
 
-    {/* LIGHTBOX OVERLAY */}
     {previewImage && (
       <div 
           className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-200"

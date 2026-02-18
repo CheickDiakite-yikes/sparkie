@@ -5,171 +5,171 @@ import ChatWidget from './components/ChatWidget';
 import IdeaDetailModal from './components/IdeaDetailModal';
 import LandingPage from './components/LandingPage';
 import SocialMediaCard from './components/SocialMediaCard';
-import { analyzeIdeaRecursive } from './services/geminiService';
-import { getAllIdeas, saveIdea, migrateFromLocalStorage } from './services/db';
-import { Idea } from './types';
+import AuthPage from './components/AuthPage';
+import { authAPI, ideasAPI, aiAPI } from './services/api';
+import { Idea, User } from './types';
 import ErrorBoundary from './components/ErrorBoundary';
 
-// Palette for random card colors
 const CARD_COLORS = [
-  '#FFD6E0', // Soft pink
-  '#C1F0DC', // Mint
-  '#D4E0FF', // Periwinkle
-  '#FFF5C2', // Light yellow
-  '#E0D4FF', // Lavender
-  '#FFE4C2', // Peach
+  '#FFD6E0',
+  '#C1F0DC',
+  '#D4E0FF',
+  '#FFF5C2',
+  '#E0D4FF',
+  '#FFE4C2',
 ];
 
-type ViewState = 'landing' | 'dashboard';
+type ViewState = 'landing' | 'auth' | 'dashboard';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>('landing');
+  const [user, setUser] = useState<User | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null);
   const [showNewIdeaInput, setShowNewIdeaInput] = useState(false);
   const [showSocialCard, setShowSocialCard] = useState(false);
   
-  // New Idea Input State
   const [newTitle, setNewTitle] = useState('');
   const [newPrompt, setNewPrompt] = useState('');
 
-  // Initial Load & Migration
   useEffect(() => {
-    console.log("App mounted. Initializing DB...");
-    const loadData = async () => {
-      try {
-        await migrateFromLocalStorage();
-        const loadedIdeas = await getAllIdeas();
-        console.log(`Loaded ${loadedIdeas.length} ideas from DB.`);
-        
-        // Extra Sanitization Layer for Runtime Safety
-        const safeIdeas = loadedIdeas.map(idea => ({
-           ...idea,
-           images: idea.images || [],
-           tags: idea.tags || ['Idea'],
-           groundingSources: idea.groundingSources || [],
-           userNotes: idea.userNotes || [],
-           analysis: idea.analysis || { executiveSummary: '', marketResearch: '', prd: '', uiux: '', oneShotPrompt: '' },
-           // Ensure chatHistory is initialized
-           chatHistory: idea.chatHistory || []
-        }));
-
-        // Sort by most recently updated
-        safeIdeas.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-        setIdeas(safeIdeas);
-      } catch (e) {
-        console.error("Failed to load ideas from DB", e);
-      }
-    };
-    loadData();
+    authAPI.me()
+      .then(res => {
+        setUser(res.user);
+        setAuthChecked(true);
+      })
+      .catch(() => {
+        setUser(null);
+        setAuthChecked(true);
+      });
   }, []);
 
-  // Helper to persist data to DB and update state
-  const persistIdeaUpdate = (updatedIdea: Idea) => {
-    // 1. Update State
-    setIdeas(prev => prev.map(i => i.id === updatedIdea.id ? updatedIdea : i));
-    
-    // 2. Update DB (Fire and forget, but robust)
-    saveIdea(updatedIdea).catch(err => console.error("Failed to save idea to DB", err));
-    
-    // 3. Update Selected View if needed
-    setSelectedIdea(prev => (prev && prev.id === updatedIdea.id) ? updatedIdea : prev);
+  useEffect(() => {
+    if (user) {
+      loadIdeas();
+    }
+  }, [user]);
+
+  const loadIdeas = async () => {
+    try {
+      const res = await ideasAPI.list();
+      const loadedIdeas = (res.ideas || []).map((idea: Idea) => ({
+        ...idea,
+        images: idea.images || [],
+        tags: idea.tags || ['Idea'],
+        grounding_sources: idea.grounding_sources || [],
+        notes: idea.notes || [],
+        analysis: idea.analysis || { executive_summary: '', market_research: '', prd: '', uiux: '', one_shot_prompt: '' },
+        chat_messages: idea.chat_messages || [],
+      }));
+      setIdeas(loadedIdeas);
+    } catch (e) {
+      console.error("Failed to load ideas", e);
+    }
+  };
+
+  const handleAuthSuccess = (authedUser: User) => {
+    setUser(authedUser);
+    setCurrentView('dashboard');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authAPI.logout();
+    } catch (e) {
+      console.error("Logout error:", e);
+    }
+    setUser(null);
+    setIdeas([]);
+    setSelectedIdea(null);
+    setCurrentView('landing');
+  };
+
+  const handleEnterApp = () => {
+    if (user) {
+      setCurrentView('dashboard');
+    } else {
+      setCurrentView('auth');
+    }
   };
 
   const handleCreateIdea = async () => {
     if (!newTitle.trim()) return;
-    console.log("Creating new idea:", newTitle);
-
-    const newIdea: Idea = {
-      id: Date.now().toString(),
-      title: newTitle,
-      initialPrompt: newPrompt, // Keep for legacy
-      userNotes: [{
-        id: Date.now().toString(),
-        text: newPrompt,
-        timestamp: Date.now()
-      }],
-      analysis: {
-        executiveSummary: '',
-        marketResearch: '',
-        prd: '',
-        uiux: '',
-        oneShotPrompt: ''
-      },
-      status: 'new',
-      tags: ['Idea'],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      color: CARD_COLORS[Math.floor(Math.random() * CARD_COLORS.length)],
-      images: [],
-      groundingSources: [],
-      chatHistory: [] // Initialize chat history
-    };
-
-    // Update state
-    setIdeas(prev => [newIdea, ...prev]);
-    // Persist new idea
-    saveIdea(newIdea);
-    
-    setNewTitle('');
-    setNewPrompt('');
-    setShowNewIdeaInput(false);
-
-    // Trigger AI Research in background
-    triggerAnalysis(newIdea);
-  };
-
-  const triggerAnalysis = async (idea: Idea) => {
-    console.log("Triggering analysis for:", idea.id);
-    // Optimistic update for status
-    const processingIdea: Idea = { ...idea, status: 'processing' };
-    persistIdeaUpdate(processingIdea);
 
     try {
-      const { analysis, groundingChunks } = await analyzeIdeaRecursive(idea.title, idea.userNotes);
+      const color = CARD_COLORS[Math.floor(Math.random() * CARD_COLORS.length)];
+      const res = await ideasAPI.create({
+        title: newTitle,
+        initial_prompt: newPrompt,
+        color,
+        tags: ['Idea'],
+      });
+
+      const newIdea = res.idea;
+      setIdeas(prev => [newIdea, ...prev]);
+      setNewTitle('');
+      setNewPrompt('');
+      setShowNewIdeaInput(false);
+
+      aiAPI.analyze(newIdea.id).catch(console.error);
       
-      const finishedIdea: Idea = {
-        ...idea,
-        status: 'ready',
-        analysis: analysis,
-        groundingSources: [...idea.groundingSources, ...groundingChunks],
-        updatedAt: Date.now()
-      };
-      
-      persistIdeaUpdate(finishedIdea);
+      setTimeout(async () => {
+        await pollIdeaStatus(newIdea.id);
+      }, 3000);
     } catch (e) {
-      console.error("Analysis failed:", e);
-      const errorIdea: Idea = { ...idea, status: 'error' };
-      persistIdeaUpdate(errorIdea);
+      console.error("Failed to create idea:", e);
     }
   };
 
-  // Wrapper for child components to update ideas
+  const pollIdeaStatus = async (ideaId: number) => {
+    try {
+      const res = await ideasAPI.get(ideaId);
+      const updatedIdea = res.idea;
+      
+      setIdeas(prev => prev.map(i => i.id === updatedIdea.id ? updatedIdea : i));
+      setSelectedIdea(prev => (prev && prev.id === updatedIdea.id) ? updatedIdea : prev);
+      
+      if (updatedIdea.status === 'processing') {
+        setTimeout(() => pollIdeaStatus(ideaId), 5000);
+      }
+    } catch (e) {
+      console.error("Failed to poll idea status:", e);
+    }
+  };
+
   const handleUpdateIdea = (updated: Idea, shouldTriggerAnalysis = false) => {
-    console.log("Updating idea:", updated.id);
-    const timestampedIdea = { ...updated, updatedAt: Date.now() };
-    persistIdeaUpdate(timestampedIdea);
-    
+    setIdeas(prev => prev.map(i => i.id === updated.id ? updated : i));
+    setSelectedIdea(prev => (prev && prev.id === updated.id) ? updated : prev);
+
     if (shouldTriggerAnalysis) {
-        triggerAnalysis(timestampedIdea);
+      aiAPI.analyze(updated.id).catch(console.error);
+      setTimeout(() => pollIdeaStatus(updated.id), 3000);
     }
   };
 
   const handleCardClick = (idea: Idea) => {
-    console.log("Card clicked:", idea.id, idea.title);
-    try {
-      setSelectedIdea(idea);
-    } catch (e) {
-      console.error("Error setting selected idea:", e);
-    }
+    setSelectedIdea(idea);
   };
 
-  // ROUTING RENDER
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center shadow-lg animate-pulse">
+            <Sparkles className="text-white w-7 h-7" />
+          </div>
+          <p className="text-stone-400 font-hand text-lg">Loading SparkGarden...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (currentView === 'landing') {
     return (
       <>
         <LandingPage 
-            onEnterApp={() => setCurrentView('dashboard')} 
+            onEnterApp={handleEnterApp} 
             onViewSocialCard={() => setShowSocialCard(true)}
         />
         {showSocialCard && <SocialMediaCard onClose={() => setShowSocialCard(false)} />}
@@ -177,11 +177,13 @@ const App: React.FC = () => {
     );
   }
 
-  // DASHBOARD VIEW
+  if (currentView === 'auth' || (!user && currentView === 'dashboard')) {
+    return <AuthPage onAuthSuccess={handleAuthSuccess} />;
+  }
+
   return (
     <div className="min-h-screen pb-20 relative bg-[#FDFBF7]">
       
-      {/* Header */}
       <header className="sticky top-0 z-20 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-stone-200/50 py-4 px-4 md:px-12 flex items-center justify-between">
         <button 
           onClick={() => setCurrentView('landing')}
@@ -195,10 +197,15 @@ const App: React.FC = () => {
         </button>
         
         <div className="flex items-center gap-4">
-           {/* Mobile Home Icon */}
            <button onClick={() => setCurrentView('landing')} className="md:hidden text-stone-500">
              <Home size={20} />
            </button>
+
+           {user && (
+             <span className="hidden md:inline text-sm text-stone-500 font-medium">
+               {user.name}
+             </span>
+           )}
 
            <button 
             onClick={() => setShowNewIdeaInput(true)}
@@ -208,12 +215,18 @@ const App: React.FC = () => {
             <span className="hidden md:inline">New Seed</span>
             <span className="inline md:hidden">Seed</span>
           </button>
+
+          <button
+            onClick={handleLogout}
+            className="text-stone-400 hover:text-stone-600 transition-colors p-2 rounded-full hover:bg-stone-100"
+            title="Log out"
+          >
+            <LogOut size={18} />
+          </button>
         </div>
       </header>
 
-      {/* Main Grid */}
       <main className="max-w-7xl mx-auto px-4 md:px-12 py-8">
-        {/* Intro Banner if empty */}
         {ideas.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center opacity-60">
             <div className="w-24 h-24 bg-stone-200 rounded-full mb-6 animate-pulse" />
@@ -231,7 +244,6 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* New Idea Modal/Overlay */}
       {showNewIdeaInput && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-2xl transform transition-all scale-100 animate-in fade-in zoom-in-95 duration-200">
@@ -271,7 +283,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Detail Modal */}
       {selectedIdea && (
         <ErrorBoundary componentName="IdeaDetailModal" fallback={
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -290,7 +301,6 @@ const App: React.FC = () => {
         </ErrorBoundary>
       )}
 
-      {/* Chat Floater - Now connected to Update Logic */}
       <ErrorBoundary componentName="ChatWidget">
         <ChatWidget 
             currentIdeaContext={selectedIdea} 

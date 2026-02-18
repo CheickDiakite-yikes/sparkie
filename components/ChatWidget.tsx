@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, X, Send, Sparkles, MapPin, Search, Wrench } from 'lucide-react';
-import { sendAgentChat } from '../services/geminiService';
+import { MessageCircle, X, Send, Sparkles, Wrench } from 'lucide-react';
+import { aiAPI, ideasAPI } from '../services/api';
 import { ChatMessage, Idea } from '../types';
 import ReactMarkdown from 'react-markdown';
 
@@ -12,7 +12,7 @@ interface ChatWidgetProps {
 const ChatWidget: React.FC<ChatWidgetProps> = ({ currentIdeaContext, onUpdateIdea }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: '1', role: 'model', text: 'Hi! I\'m your creative partner. Ask me anything or open a note to get specific help!' }
+    { id: 1, role: 'model', text: 'Hi! I\'m your creative partner. Ask me anything or open a note to get specific help!' }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -27,94 +27,38 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentIdeaContext, onUpdateIde
   }, [messages, isOpen]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || !currentIdeaContext) return;
 
-    const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', text: input };
+    const userMsg: ChatMessage = { id: Date.now(), role: 'user', text: input };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsTyping(true);
 
     try {
-      // Prepare history for API
       const history = messages.map(m => ({
         role: m.role,
-        parts: [{ text: m.text }]
+        text: m.text
       }));
 
-      // Robust Context String
-      let contextStr = '';
-      if (currentIdeaContext) {
-        const notesContent = currentIdeaContext.userNotes?.map(n => n.text).join('\n') || '';
-        // Increased context slice limits significantly to include the new detailed research
-        contextStr = `
-        CURRENT IDEA TITLE: ${currentIdeaContext.title}
+      const result = await aiAPI.chat(currentIdeaContext.id, input, history);
+
+      if (result.toolCalls && result.toolCalls.length > 0 && onUpdateIdea) {
+        const freshIdea = await ideasAPI.get(currentIdeaContext.id);
+        onUpdateIdea(freshIdea.idea);
         
-        USER NOTES:
-        ${notesContent}
-        
-        CURRENT BLUEPRINTS (Analysis):
-        - Executive Summary: ${currentIdeaContext.analysis.executiveSummary.slice(0, 1000)}...
-        - Market & Tech Research: ${currentIdeaContext.analysis.marketResearch.slice(0, 4000)}... 
-        - PRD: ${currentIdeaContext.analysis.prd.slice(0, 2000)}...
-        - UI/UX: ${currentIdeaContext.analysis.uiux.slice(0, 2000)}...
-        `;
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          role: 'model',
+          text: `*Updated blueprints based on your request...* 🛠️`
+        }]);
       }
 
-      // 1. Send Message
-      const { response, chat } = await sendAgentChat(history, input, contextStr);
-      let finalText = response.text || "";
-
-      // 2. Handle Tool Calls (If AI wants to update blueprints)
-      if (response.functionCalls && response.functionCalls.length > 0) {
-         const toolResponses = [];
-         
-         for (const call of response.functionCalls) {
-           if (call.name === 'updateProjectBlueprint' && currentIdeaContext && onUpdateIdea) {
-             const { section, content } = call.args as any;
-             
-             // Update Local State
-             const updatedIdea = {
-               ...currentIdeaContext,
-               analysis: {
-                 ...currentIdeaContext.analysis,
-                 [section]: content
-               },
-               updatedAt: Date.now()
-             };
-             
-             onUpdateIdea(updatedIdea);
-             
-             toolResponses.push({
-               functionResponse: {
-                 name: call.name,
-                 id: call.id,
-                 response: { result: `Successfully updated section: ${section}` }
-               }
-             });
-
-             // Show a small system message in chat
-             setMessages(prev => [...prev, { 
-               id: Date.now().toString(), 
-               role: 'model', 
-               text: `*Updating ${section} based on your request...* 🛠️` 
-             }]);
-           }
-         }
-
-         // 3. Send Tool Outputs back to AI to get final confirmation
-         if (toolResponses.length > 0) {
-           // Fix: wrap toolResponses in an object with message property
-           const finalResponse = await chat.sendMessage({ message: toolResponses });
-           finalText = finalResponse.text || "Updated the blueprints for you.";
-         }
-      }
-
-      const aiMsg: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: finalText };
+      const aiMsg: ChatMessage = { id: Date.now() + 1, role: 'model', text: result.response || "I processed your request." };
       setMessages(prev => [...prev, aiMsg]);
 
     } catch (e) {
       console.error(e);
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: "Sorry, I had trouble processing that request." }]);
+      setMessages(prev => [...prev, { id: Date.now(), role: 'model', text: "Sorry, I had trouble processing that request." }]);
     } finally {
       setIsTyping(false);
     }
@@ -122,10 +66,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentIdeaContext, onUpdateIde
 
   return (
     <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 flex flex-col items-end pointer-events-none">
-      {/* Chat Window */}
       {isOpen && (
         <div className="pointer-events-auto mb-4 w-[90vw] max-w-md h-[60vh] md:h-[500px] bg-white rounded-3xl shadow-2xl border-2 border-gray-100 flex flex-col overflow-hidden animate-float">
-          {/* Header */}
           <div className="bg-gradient-to-r from-violet-600 to-indigo-600 p-4 flex items-center justify-between text-white">
             <div className="flex items-center gap-2">
               <Sparkles size={18} className="text-yellow-300" />
@@ -136,7 +78,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentIdeaContext, onUpdateIde
             </button>
           </div>
           
-          {/* Context indicator */}
           {currentIdeaContext && (
             <div className="bg-indigo-50 px-4 py-2 text-xs text-indigo-700 font-medium border-b border-indigo-100 flex items-center gap-2 justify-between">
               <div className="flex items-center gap-2">
@@ -149,7 +90,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentIdeaContext, onUpdateIde
             </div>
           )}
 
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -178,19 +118,19 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentIdeaContext, onUpdateIde
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
           <div className="p-4 bg-white border-t border-gray-100">
             <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-full border border-gray-200 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
               <input 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Ask for updates, research..."
-                className="flex-1 bg-transparent px-3 outline-none text-sm text-gray-700"
+                placeholder={currentIdeaContext ? "Ask for updates, research..." : "Open an idea to start chatting..."}
+                disabled={!currentIdeaContext}
+                className="flex-1 bg-transparent px-3 outline-none text-sm text-gray-700 disabled:opacity-50"
               />
               <button 
                 onClick={handleSend}
-                disabled={!input.trim() || isTyping}
+                disabled={!input.trim() || isTyping || !currentIdeaContext}
                 className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-md"
               >
                 <Send size={16} />
@@ -200,7 +140,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentIdeaContext, onUpdateIde
         </div>
       )}
 
-      {/* Floating Button */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className="pointer-events-auto bg-gray-900 hover:bg-black text-white p-4 rounded-full shadow-xl transition-transform hover:scale-110 flex items-center gap-2 group"

@@ -133,7 +133,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onViewSocialCard 
                 Start Incubating Free
               </button>
               <p className="text-stone-400 text-sm font-hand mt-2 md:mt-0 md:ml-4 rotate-2">
-                No login required. Local data.
+                Sign up free. Your ideas, secured.
               </p>
             </div>
           </RevealOnScroll>
@@ -268,8 +268,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onViewSocialCard 
         </RevealOnScroll>
         <div className="space-y-4">
           {[
-            { q: "Is it really free?", a: "Yes. SparkGarden runs client-side. We use a shared API key for the demo, but you can bring your own for heavy usage." },
-            { q: "Where is my data stored?", a: "Locally in your browser (IndexedDB). We don't have a backend database seeing your ideas." },
+            { q: "Is it really free?", a: "Yes. Sign up and start incubating ideas for free. We handle the AI infrastructure so you can focus on creating." },
+            { q: "Where is my data stored?", a: "Your ideas are securely stored in our cloud database. Sign in from any device to access your garden." },
             { q: "Can it write code?", a: "It generates 'One-Shot Prompts' designed to be pasted into coding tools like Cursor or Bolt to generate the app instantly." },
           ].map((item, i) => (
             <RevealOnScroll key={i} delay={i * 100}>
