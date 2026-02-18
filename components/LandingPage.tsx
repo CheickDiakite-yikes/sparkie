@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Sparkles, ArrowRight, BrainCircuit, Palette, Zap, ChevronDown, Leaf, Camera } from 'lucide-react';
+import { Sparkles, ArrowRight, BrainCircuit, Palette, Zap, ChevronDown, Leaf } from 'lucide-react';
 
 interface LandingPageProps {
   onEnterApp: () => void;
-  onViewSocialCard?: () => void;
 }
 
 // --- Animation Helper Component ---
@@ -38,7 +37,7 @@ const RevealOnScroll: React.FC<{ children: React.ReactNode; className?: string; 
   );
 };
 
-const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onViewSocialCard }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
@@ -307,9 +306,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onViewSocialCard 
             </p>
             
             <div className="flex gap-6 text-sm font-medium text-stone-500 items-center">
-               <button onClick={onViewSocialCard} className="hover:text-black transition-colors flex items-center gap-1">
-                 <Camera size={14}/> Social Card
-               </button>
                <a href="https://github.com/CheickDiakite-yikes/sparkie" target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">GitHub</a>
             </div>
          </div>

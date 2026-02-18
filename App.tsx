@@ -4,7 +4,6 @@ import IdeaCard from './components/IdeaCard';
 import ChatWidget from './components/ChatWidget';
 import IdeaDetailModal from './components/IdeaDetailModal';
 import LandingPage from './components/LandingPage';
-import SocialMediaCard from './components/SocialMediaCard';
 import AuthPage from './components/AuthPage';
 import ProfilePage from './components/ProfilePage';
 import { authAPI, ideasAPI, aiAPI } from './services/api';
@@ -29,7 +28,6 @@ const App: React.FC = () => {
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null);
   const [showNewIdeaInput, setShowNewIdeaInput] = useState(false);
-  const [showSocialCard, setShowSocialCard] = useState(false);
   
   const [newTitle, setNewTitle] = useState('');
   const [newPrompt, setNewPrompt] = useState('');
@@ -180,13 +178,9 @@ const App: React.FC = () => {
 
   if (currentView === 'landing') {
     return (
-      <>
-        <LandingPage 
-            onEnterApp={handleEnterApp} 
-            onViewSocialCard={() => setShowSocialCard(true)}
-        />
-        {showSocialCard && <SocialMediaCard onClose={() => setShowSocialCard(false)} />}
-      </>
+      <LandingPage 
+        onEnterApp={handleEnterApp} 
+      />
     );
   }
 
