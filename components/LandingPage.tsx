@@ -310,7 +310,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onViewSocialCard 
                <button onClick={onViewSocialCard} className="hover:text-black transition-colors flex items-center gap-1">
                  <Camera size={14}/> Social Card
                </button>
-               <a href="#" className="hover:text-black transition-colors">GitHub</a>
+               <a href="https://github.com/CheickDiakite-yikes/sparkie" target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">GitHub</a>
             </div>
          </div>
       </footer>
