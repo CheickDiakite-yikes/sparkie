@@ -413,11 +413,16 @@ ${analysis.one_shot_prompt}
         if (fc.name === 'updateProjectBlueprint') {
           const args = fc.args as any;
           const dbColumn = sectionMap[args.section];
-          if (dbColumn && args.content) {
-            await query(
-              `UPDATE analysis SET ${dbColumn} = $1, updated_at = NOW() WHERE idea_id = $2`,
-              [args.content, ideaId]
-            );
+          const allowedColumns = ['executive_summary', 'market_research', 'prd', 'uiux', 'one_shot_prompt'];
+          if (dbColumn && allowedColumns.includes(dbColumn) && args.content) {
+            const columnQueries: Record<string, string> = {
+              executive_summary: 'UPDATE analysis SET executive_summary = $1, updated_at = NOW() WHERE idea_id = $2',
+              market_research: 'UPDATE analysis SET market_research = $1, updated_at = NOW() WHERE idea_id = $2',
+              prd: 'UPDATE analysis SET prd = $1, updated_at = NOW() WHERE idea_id = $2',
+              uiux: 'UPDATE analysis SET uiux = $1, updated_at = NOW() WHERE idea_id = $2',
+              one_shot_prompt: 'UPDATE analysis SET one_shot_prompt = $1, updated_at = NOW() WHERE idea_id = $2',
+            };
+            await query(columnQueries[dbColumn], [args.content, ideaId]);
             toolCallResults.push({ section: args.section, updated: true });
           }
         }
