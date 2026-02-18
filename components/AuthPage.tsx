@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Sparkles, Eye, EyeOff, Loader2, Leaf, PenLine } from 'lucide-react';
 import { authAPI } from '../services/api';
 import { User } from '../types';
 
@@ -86,151 +86,192 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
     setError('');
   };
 
-  return (
-    <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center p-4 relative">
-      <div className="fixed inset-0 pointer-events-none opacity-[0.4]"
-           style={{ backgroundImage: 'radial-gradient(#E5E5E5 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+  const inputClass = "w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-transparent border-b-2 border-amber-200/60 text-gray-900 placeholder-stone-400 focus:outline-none focus:border-amber-400 transition-all font-hand text-base sm:text-lg";
 
-      <div className="relative z-10 w-full max-w-md">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center shadow-lg mb-4">
-            <Sparkles className="text-white w-7 h-7" />
+  const labelClass = "block text-xs sm:text-sm font-medium text-stone-500 mb-0.5 sm:mb-1 tracking-wide uppercase";
+
+  return (
+    <div className="min-h-screen min-h-[100dvh] bg-[#FDFBF7] flex flex-col items-center justify-start sm:justify-center px-4 py-6 sm:py-8 relative overflow-y-auto">
+      <div className="fixed inset-0 pointer-events-none opacity-[0.3]"
+           style={{ backgroundImage: 'radial-gradient(#D4C9A8 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+
+      <div className="fixed top-4 left-4 sm:top-8 sm:left-8 pointer-events-none select-none hidden sm:block">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#FFD6E0] rounded-sm shadow-md transform -rotate-6 flex items-center justify-center"
+             style={{ clipPath: 'polygon(0 5%, 100% 0, 100% 100%, 0% 95%)' }}>
+          <PenLine className="text-rose-400 w-6 h-6 sm:w-8 sm:h-8 opacity-60" />
+        </div>
+      </div>
+
+      <div className="fixed bottom-8 right-8 pointer-events-none select-none hidden sm:block">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#D4F5E0] rounded-sm shadow-md transform rotate-6 flex items-center justify-center"
+             style={{ clipPath: 'polygon(0 0, 100% 5%, 100% 95%, 0% 100%)' }}>
+          <Leaf className="text-emerald-500 w-6 h-6 sm:w-8 sm:h-8 opacity-60" />
+        </div>
+      </div>
+
+      <div className="relative z-10 w-full max-w-sm sm:max-w-md flex flex-col items-center">
+        <div className="flex flex-col items-center mb-4 sm:mb-6 shrink-0">
+          <div className="w-11 h-11 sm:w-14 sm:h-14 bg-[#2C2C2C] rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg mb-2 sm:mb-3">
+            <Sparkles className="text-amber-200 w-5 h-5 sm:w-7 sm:h-7" />
           </div>
-          <h1 className="font-display text-4xl font-bold tracking-tight text-gray-900">SparkGarden</h1>
-          <p className="font-hand text-lg text-stone-500 mt-1">
+          <h1 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-gray-900">SparkGarden</h1>
+          <p className="font-hand text-sm sm:text-lg text-stone-500 mt-0.5">
             {mode === 'signup' ? 'Plant your first idea today' : 'Welcome back, gardener'}
           </p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl border border-stone-100 p-8">
-          <div className="flex bg-stone-100 p-1 rounded-xl mb-6">
-            <button
-              onClick={() => { setMode('signup'); setError(''); }}
-              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${mode === 'signup' ? 'bg-white shadow-sm text-gray-900' : 'text-stone-500 hover:text-stone-700'}`}
-            >
-              Sign Up
-            </button>
-            <button
-              onClick={() => { setMode('login'); setError(''); }}
-              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${mode === 'login' ? 'bg-white shadow-sm text-gray-900' : 'text-stone-500 hover:text-stone-700'}`}
-            >
-              Log In
-            </button>
-          </div>
+        <div className="w-full relative">
+          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-4 bg-amber-300/70 rounded-sm shadow-sm z-20" />
+          <div className="absolute -top-2 left-[30%] -translate-x-1/2 w-6 h-3.5 bg-amber-200/60 rounded-sm shadow-sm z-20 hidden sm:block" />
+          <div className="absolute -top-2 left-[70%] -translate-x-1/2 w-6 h-3.5 bg-amber-200/60 rounded-sm shadow-sm z-20 hidden sm:block" />
 
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm font-medium">
-              {error}
+          <div className="relative bg-[#FFFEF9] rounded-md shadow-[0_2px_20px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.05)] border border-amber-100/60 p-5 sm:p-7 pt-6 sm:pt-8"
+               style={{
+                 backgroundImage: 'repeating-linear-gradient(transparent, transparent 27px, #E8DCC8 27px, #E8DCC8 28px)',
+                 backgroundPosition: '0 60px',
+               }}>
+
+            <div className="absolute left-8 sm:left-10 top-0 bottom-0 w-px bg-rose-200/40 pointer-events-none" />
+
+            <div className="flex bg-amber-50/80 p-0.5 sm:p-1 rounded-lg mb-4 sm:mb-5 border border-amber-100/50">
+              <button
+                onClick={() => { setMode('signup'); setError(''); }}
+                className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-md transition-all duration-200 ${mode === 'signup' ? 'bg-white shadow-sm text-gray-900 border border-amber-100/60' : 'text-stone-400 hover:text-stone-600'}`}
+              >
+                Sign Up
+              </button>
+              <button
+                onClick={() => { setMode('login'); setError(''); }}
+                className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-md transition-all duration-200 ${mode === 'login' ? 'bg-white shadow-sm text-gray-900 border border-amber-100/60' : 'text-stone-400 hover:text-stone-600'}`}
+              >
+                Log In
+              </button>
             </div>
-          )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === 'signup' && (
-              <div>
-                <label className="block text-sm font-medium text-stone-600 mb-1">Name *</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-gray-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-stone-300 transition-all"
-                  placeholder="Your name"
-                />
+            {error && (
+              <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-red-50/80 border border-red-200/60 rounded-lg text-red-600 text-xs sm:text-sm font-hand">
+                {error}
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-stone-600 mb-1">Email *</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-gray-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-stone-300 transition-all"
-                placeholder="you@example.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-stone-600 mb-1">Password *</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-gray-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-stone-300 transition-all pr-12"
-                  placeholder={mode === 'signup' ? 'Min 8 characters' : 'Your password'}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
-
-            {mode === 'signup' && (
-              <>
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+              {mode === 'signup' && (
                 <div>
-                  <label className="block text-sm font-medium text-stone-600 mb-1">Confirm Password *</label>
-                  <input
-                    type="password"
-                    value={passwordConfirm}
-                    onChange={(e) => setPasswordConfirm(e.target.value)}
-                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-gray-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-stone-300 transition-all"
-                    placeholder="Re-enter password"
-                  />
-                </div>
-
-                <div className="pt-2 border-t border-stone-100">
-                  <label className="block text-sm font-medium text-stone-600 mb-1">Job / Role <span className="text-stone-400">(optional)</span></label>
+                  <label className={labelClass}>Name *</label>
                   <input
                     type="text"
-                    value={jobRole}
-                    onChange={(e) => setJobRole(e.target.value)}
-                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-gray-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-stone-300 transition-all"
-                    placeholder="e.g. Product Manager, Designer"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className={inputClass}
+                    placeholder="Your name"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-stone-600 mb-1">How did you find us? <span className="text-stone-400">(optional)</span></label>
-                  <select
-                    value={referralSource}
-                    onChange={(e) => setReferralSource(e.target.value)}
-                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-stone-300 transition-all"
-                  >
-                    <option value="">Select...</option>
-                    {REFERRAL_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-                </div>
-              </>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 bg-black text-white rounded-xl font-medium hover:bg-stone-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
-            >
-              {loading ? (
-                <Loader2 size={20} className="animate-spin" />
-              ) : mode === 'signup' ? (
-                'Create Account'
-              ) : (
-                'Log In'
               )}
-            </button>
-          </form>
 
-          <p className="text-center text-sm text-stone-500 mt-6">
-            {mode === 'signup' ? 'Already have an account?' : "Don't have an account?"}{' '}
-            <button onClick={switchMode} className="text-black font-semibold hover:underline">
-              {mode === 'signup' ? 'Log in' : 'Sign up'}
-            </button>
-          </p>
+              <div>
+                <label className={labelClass}>Email *</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={inputClass}
+                  placeholder="you@example.com"
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Password *</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`${inputClass} pr-10`}
+                    placeholder={mode === 'signup' ? 'Min 8 characters' : 'Your password'}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors p-1"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {mode === 'signup' && (
+                <>
+                  <div>
+                    <label className={labelClass}>Confirm Password *</label>
+                    <input
+                      type="password"
+                      value={passwordConfirm}
+                      onChange={(e) => setPasswordConfirm(e.target.value)}
+                      className={inputClass}
+                      placeholder="Re-enter password"
+                    />
+                  </div>
+
+                  <div className="pt-2 sm:pt-3 border-t border-dashed border-amber-200/60">
+                    <label className={labelClass}>Job / Role <span className="text-stone-300 normal-case">(optional)</span></label>
+                    <input
+                      type="text"
+                      value={jobRole}
+                      onChange={(e) => setJobRole(e.target.value)}
+                      className={inputClass}
+                      placeholder="e.g. Product Manager, Designer"
+                    />
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>How did you find us? <span className="text-stone-300 normal-case">(optional)</span></label>
+                    <select
+                      value={referralSource}
+                      onChange={(e) => setReferralSource(e.target.value)}
+                      className={`${inputClass} cursor-pointer`}
+                    >
+                      <option value="">Select...</option>
+                      {REFERRAL_OPTIONS.map((opt) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 sm:py-3.5 bg-[#2C2C2C] text-white rounded-lg font-semibold text-sm sm:text-base hover:bg-[#1a1a1a] transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 mt-3 sm:mt-4 active:scale-[0.98]"
+              >
+                {loading ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : mode === 'signup' ? (
+                  <>
+                    <Leaf size={16} />
+                    Plant My Account
+                  </>
+                ) : (
+                  'Log In'
+                )}
+              </button>
+            </form>
+
+            <p className="text-center text-xs sm:text-sm text-stone-400 mt-4 sm:mt-5 font-hand">
+              {mode === 'signup' ? 'Already have an account?' : "Don't have an account?"}{' '}
+              <button onClick={switchMode} className="text-amber-700 font-bold hover:underline underline-offset-2">
+                {mode === 'signup' ? 'Log in' : 'Sign up'}
+              </button>
+            </p>
+          </div>
+
+          <div className="absolute -bottom-1 left-2 right-2 h-2 bg-amber-50/40 rounded-b-md -z-10 border-x border-b border-amber-100/30" />
+          <div className="absolute -bottom-2.5 left-4 right-4 h-2 bg-amber-50/20 rounded-b-md -z-20 border-x border-b border-amber-100/20" />
         </div>
+
+        <p className="text-center text-[10px] sm:text-xs text-stone-400 mt-4 sm:mt-6 font-hand">
+          Your ideas stay private & secure
+        </p>
       </div>
     </div>
   );
