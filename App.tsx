@@ -200,13 +200,17 @@ const App: React.FC = () => {
       <header className="sticky top-0 z-30 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-stone-200/50 py-4 px-4 md:px-12 flex items-center justify-between">
         <button 
           onClick={() => setCurrentView('landing')}
-          className="flex items-center gap-2 group hover:opacity-80 transition-opacity"
+          className="flex items-center gap-2.5 group hover:opacity-80 transition-opacity"
           title="Back to Home"
         >
-          <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center shadow-md group-hover:rotate-12 transition-transform">
-             <Sparkles className="text-white w-4 h-4" />
+          <div className="relative w-9 h-9 bg-black rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-stone-800 to-black" />
+            <div className="relative flex items-center justify-center">
+              <Sparkles className="text-amber-300 w-5 h-5 animate-pulse" />
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full animate-ping opacity-20" />
+            </div>
           </div>
-          <h1 className="font-display text-2xl font-medium tracking-tight text-gray-900">Insparkie</h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-stone-900">Insparkie</h1>
         </button>
         
         <div className="flex items-center gap-3">
