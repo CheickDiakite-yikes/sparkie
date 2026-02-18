@@ -1,7 +1,7 @@
-# SparkGarden - AI PRD & Idea Incubator
+# Insparkie - AI PRD & Idea Incubator
 
 ## Overview
-SparkGarden is a full-stack React + Express application that helps users develop product ideas using AI. Users sign up, "plant" an idea seed, and AI agents automatically generate market research, product requirement documents (PRDs), UI/UX design specs, and one-shot coding prompts. All data is stored server-side in PostgreSQL with images in Replit object storage.
+Insparkie is a full-stack React + Express application that helps users develop product ideas using AI. Users sign up, "plant" an idea seed, and AI agents automatically generate market research, product requirement documents (PRDs), UI/UX design specs, and one-shot coding prompts. All data is stored server-side in PostgreSQL with images in Replit object storage.
 
 ## Current State
 - Full-stack app: Express backend + React frontend

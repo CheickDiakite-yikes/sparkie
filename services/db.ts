@@ -1,22 +1,22 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { Idea } from '../types';
 
-interface SparkGardenDB extends DBSchema {
+interface InsparkieDB extends DBSchema {
   ideas: {
     key: string;
     value: Idea;
   };
 }
 
-const DB_NAME = 'SparkGardenDB';
+const DB_NAME = 'InsparkieDB';
 const STORE_NAME = 'ideas';
 const VERSION = 1;
 
-let dbPromise: Promise<IDBPDatabase<SparkGardenDB>>;
+let dbPromise: Promise<IDBPDatabase<InsparkieDB>>;
 
 export const initDB = () => {
   if (!dbPromise) {
-    dbPromise = openDB<SparkGardenDB>(DB_NAME, VERSION, {
+    dbPromise = openDB<InsparkieDB>(DB_NAME, VERSION, {
       upgrade(db) {
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           db.createObjectStore(STORE_NAME, { keyPath: 'id' });
@@ -55,7 +55,9 @@ export const migrateFromLocalStorage = async (): Promise<boolean> => {
     
     // Only migrate if DB is empty to avoid overwriting new data
     if (count === 0) {
-      const lsData = localStorage.getItem('sparkgarden_ideas_v2');
+      const lsData =
+        localStorage.getItem('insparkie_ideas_v2') ||
+        localStorage.getItem('sparkgarden_ideas_v2');
       if (lsData) {
         const ideas = JSON.parse(lsData);
         if (Array.isArray(ideas) && ideas.length > 0) {

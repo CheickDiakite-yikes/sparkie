@@ -47,7 +47,7 @@ const SocialMediaCard: React.FC<Props> = ({ onClose }) => {
 
                     {/* Main Title */}
                     <h1 className="font-display text-[140px] leading-[0.9] text-stone-900 mb-6 relative">
-                        SparkGarden
+                        Insparkie
                         <span className="absolute -top-6 -right-16 text-yellow-400">
                              <Sparkles size={80} strokeWidth={2.5} />
                         </span>
@@ -80,7 +80,7 @@ const SocialMediaCard: React.FC<Props> = ({ onClose }) => {
                  
                  {/* Footer URL */}
                  <div className="absolute bottom-10 left-1/2 -translate-x-1/2 font-mono text-stone-400 tracking-widest text-lg">
-                    SPARKGARDEN.APP
+                    INSPARKIE.REPLIT.APP
                  </div>
             </div>
         </div>

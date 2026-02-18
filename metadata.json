@@ -1,6 +1,6 @@
 {
-  "name": "SparkGarden - AI PRD & Idea Incubator",
-  "description": "Free AI Product Requirements Document (PRD) generator. Automate product research, market analysis, and UI concepts with recursive AI agents.",
+  "name": "Insparkie - AI Product Research and Concept Studio",
+  "description": "Insparkie helps teams turn raw ideas into launch-ready product plans with AI PRDs, market research, specs, prompts, and concept visuals.",
   "requestFramePermissions": [
     "geolocation"
   ]

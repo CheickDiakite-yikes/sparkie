@@ -35,7 +35,7 @@ app.use(session({
     pool: pool,
     createTableIfMissing: true,
   }),
-  secret: process.env.SESSION_SECRET || 'sparkgarden-dev-secret-change-me',
+  secret: process.env.SESSION_SECRET || 'insparkie-dev-secret-change-me',
   resave: false,
   saveUninitialized: false,
   cookie: {

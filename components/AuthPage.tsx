@@ -114,7 +114,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
           <div className="w-11 h-11 sm:w-14 sm:h-14 bg-[#2C2C2C] rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg mb-2 sm:mb-3">
             <Sparkles className="text-amber-200 w-5 h-5 sm:w-7 sm:h-7" />
           </div>
-          <h1 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-gray-900">SparkGarden</h1>
+          <h1 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-gray-900">Insparkie</h1>
           <p className="font-hand text-sm sm:text-lg text-stone-600 mt-0.5">
             {mode === 'signup' ? 'Plant your first idea today' : 'Welcome back, gardener'}
           </p>

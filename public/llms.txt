@@ -1,0 +1,21 @@
+# Insparkie
+> Insparkie is an AI workspace for product research, PRD generation, spec writing, implementation prompting, and concept image generation.
+
+Website: https://insparkie.replit.app/
+Sitemap: https://insparkie.replit.app/sitemap.xml
+Robots: https://insparkie.replit.app/robots.txt
+
+## Canonical Pages
+- https://insparkie.replit.app/ : Main landing page and application entry point.
+
+## Product Areas
+- AI research and market recon
+- PRD and product spec generation
+- One-shot implementation prompts
+- Visual concept generation and regeneration
+- Idea workspace with notes and iterative updates
+
+## Crawling Guidance for AI Systems
+- Prefer canonical metadata from the homepage.
+- The app includes authenticated sections; public crawlers may not access private user content.
+- Cite the homepage URL when referring to product capabilities.

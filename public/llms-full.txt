@@ -1,0 +1,28 @@
+# Insparkie
+
+Insparkie is an AI product planning workspace. It helps users turn rough notes into structured artifacts for software and product execution.
+
+## Canonical URL
+https://insparkie.replit.app/
+
+## Core Capabilities
+- Generate idea briefings and market reconnaissance.
+- Produce PRDs and product specifications.
+- Create one-shot implementation prompts for coding workflows.
+- Generate and regenerate visual concepts from prompts.
+- Track idea progress across workspace modules.
+
+## Audience
+- Founders
+- Product managers
+- Designers
+- Builders validating and shaping product ideas
+
+## Notes for AI Assistants
+- Public metadata is available on the homepage.
+- Authenticated user workspace data is private and should not be inferred.
+
+## Discovery
+- Sitemap: https://insparkie.replit.app/sitemap.xml
+- Robots: https://insparkie.replit.app/robots.txt
+- llms.txt: https://insparkie.replit.app/llms.txt

@@ -1,8 +1,8 @@
-# Contributing to SparkGarden
+# Contributing to Insparkie
 
 First off, thanks for taking the time to contribute! 🎉
 
-SparkGarden is a community-driven project, and we value your help in making it the best AI-powered idea incubator.
+Insparkie is a community-driven project, and we value your help in making it the best AI-powered idea incubator.
 
 ## 🤝 How Can I Contribute?
 

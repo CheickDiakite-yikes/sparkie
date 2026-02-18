@@ -541,7 +541,7 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
               <div className="mt-6 flex gap-4">
                   <a 
                       href={previewImage} 
-                      download={`sparkgarden-concept-${Date.now()}.png`}
+                      download={`insparkie-concept-${Date.now()}.png`}
                       className="flex items-center gap-2 px-6 py-3 bg-white text-black rounded-full font-medium hover:bg-gray-200 transition-colors shadow-lg hover:scale-105 transform duration-200"
                   >
                       <Download size={20} />

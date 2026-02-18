@@ -59,7 +59,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onViewSocialCard 
           <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform duration-300">
             <Sparkles className="text-white w-5 h-5" />
           </div>
-          <span className="font-display text-2xl font-bold tracking-tight">SparkGarden</span>
+          <span className="font-display text-2xl font-bold tracking-tight">Insparkie</span>
         </div>
         <button 
           onClick={onEnterApp}
@@ -119,7 +119,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onViewSocialCard 
           
           <RevealOnScroll delay={200}>
             <p className="font-sans text-xl md:text-2xl text-stone-600 max-w-2xl mx-auto mb-10 leading-relaxed">
-              SparkGarden is an intelligent workspace that <span className="font-bold text-gray-800">researches, plans, and visualizes</span> your ideas while you sleep.
+              Insparkie is an intelligent workspace that <span className="font-bold text-gray-800">researches, plans, and visualizes</span> your ideas while you sleep.
             </p>
           </RevealOnScroll>
 
@@ -208,7 +208,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onViewSocialCard 
                </RevealOnScroll>
                <RevealOnScroll delay={100}>
                  <p className="text-lg text-stone-600 max-w-md">
-                   Most ideas die because the "Next Step" is too hard. SparkGarden removes the friction by doing the heavy lifting for you.
+                   Most ideas die because the "Next Step" is too hard. Insparkie removes the friction by doing the heavy lifting for you.
                  </p>
                </RevealOnScroll>
                <ul className="space-y-3 font-medium text-stone-700">
@@ -294,7 +294,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, onViewSocialCard 
               <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
                 <Sparkles className="text-white w-4 h-4" />
               </div>
-              <span className="font-display text-xl font-bold">SparkGarden</span>
+              <span className="font-display text-xl font-bold">Insparkie</span>
             </div>
             
             <p className="text-stone-400 text-sm font-hand">

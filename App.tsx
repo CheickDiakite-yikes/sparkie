@@ -172,7 +172,7 @@ const App: React.FC = () => {
           <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center shadow-lg animate-pulse">
             <Sparkles className="text-white w-7 h-7" />
           </div>
-          <p className="text-stone-400 font-hand text-lg">Loading SparkGarden...</p>
+          <p className="text-stone-400 font-hand text-lg">Loading Insparkie...</p>
         </div>
       </div>
     );
@@ -206,7 +206,7 @@ const App: React.FC = () => {
           <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center shadow-md group-hover:rotate-12 transition-transform">
              <Sparkles className="text-white w-4 h-4" />
           </div>
-          <h1 className="font-display text-2xl font-medium tracking-tight text-gray-900">SparkGarden</h1>
+          <h1 className="font-display text-2xl font-medium tracking-tight text-gray-900">Insparkie</h1>
         </button>
         
         <div className="flex items-center gap-3">

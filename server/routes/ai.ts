@@ -367,7 +367,7 @@ ${analysis.one_shot_prompt}
 
     const ai = getAI();
     const systemInstruction = contextStr
-      ? `You are a helpful creative assistant in a notes app called SparkGarden. 
+      ? `You are a helpful creative assistant in a notes app called Insparkie. 
          The user is currently looking at a project with specific context provided below.
          
          CONTEXT:
@@ -380,7 +380,7 @@ ${analysis.one_shot_prompt}
          If the user asks to "Refine the PRD" or "Update the build prompt", USE THE TOOL.
          
          Note: You do not have direct access to live Google Search in this chat session. Rely on the detailed research provided in the CONTEXT.`
-      : `You are a helpful creative assistant in a notes app called SparkGarden. Help the user develop their ideas.`;
+      : `You are a helpful creative assistant in a notes app called Insparkie. Help the user develop their ideas.`;
 
     const chatHistory = (history || []).map((msg: any) => ({
       role: msg.role,
