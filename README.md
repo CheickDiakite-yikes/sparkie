@@ -22,7 +22,7 @@ SparkGarden removes the friction. You plant the seed (a raw note), and our **Aut
 
 ## 🛠️ Tech Stack
 
-*   **Frontend**: React 19, Tailwind CSS
+*   **Frontend**: React 19, Tailwind CSS (via Vite)
 *   **AI Intelligence**: [Google Gemini API](https://ai.google.dev/) (via `@google/genai` SDK)
     *   **Reasoning**: `gemini-3-flash-preview` with **Thinking Config** enabled.
     *   **Visuals**: `gemini-3-pro-image-preview` for high-fidelity UI concepts.
@@ -36,10 +36,11 @@ SparkGarden removes the friction. You plant the seed (a raw note), and our **Aut
 ## 🚀 Getting Started
 
 ### Prerequisites
-*   Node.js v18+
+*   Node.js v18+ (LTS recommended)
+*   npm or yarn
 *   A [Google Gemini API Key](https://aistudio.google.com/) (Free tier available).
 
-### Installation
+### 💻 Local Development
 
 1.  **Clone the repository**
     ```bash
@@ -53,18 +54,51 @@ SparkGarden removes the friction. You plant the seed (a raw note), and our **Aut
     ```
 
 3.  **Configure Environment**
-    Create a `.env` file in the root directory:
+    Create a `.env` file in the root directory. You can copy `.env.local` if it exists, or start fresh:
     ```env
     # Get your key at aistudio.google.com
-    API_KEY=your_gemini_api_key_here
+    GEMINI_API_KEY=your_gemini_api_key_here
     ```
+    > **Note:** The app uses `vite.config.ts` to map `GEMINI_API_KEY` to `process.env.API_KEY` for the client.
 
 4.  **Run Locally**
     ```bash
-    npm start
+    npm run dev
     ```
+    The app will be available at `http://localhost:3000`.
+
+### ☁️ Cloud Development (Replit, Gitpod, Codespaces)
+
+SparkGarden is designed to run easily in cloud environments.
+
+1.  **Import the repo** into your cloud IDE.
+2.  **Set Environment Variables**:
+    *   Find the "Secrets" or "Environment Variables" settings in your IDE.
+    *   Add `GEMINI_API_KEY` with your API key.
+3.  **Install & Run**:
+    *   In the shell, run `npm install`.
+    *   Run `npm run dev`.
+    *   **Replit specific**: Ensure your `.replit` file is configured to run `npm run dev` and expose port 3000.
 
 ---
+
+## 📂 Project Structure
+
+```
+/
+├── components/          # React UI Components
+│   ├── ChatWidget.tsx   # AI Chat Interface
+│   ├── IdeaCard.tsx     # Dashboard Card Component
+│   ├── LandingPage.tsx  # Hero/Landing View
+│   └── ...
+├── services/            # Core Logic & API Layers
+│   ├── db.ts            # IndexedDB Wrapper (Local Database)
+│   └── geminiService.ts # AI Agent Orchestrator & Gemini API Client
+├── types.ts             # TypeScript Definitions
+├── App.tsx              # Main Application Controller
+├── main.tsx             # Entry Point
+└── vite.config.ts       # Vite Configuration
+```
 
 ## 🧠 Architecture: The Recursive Loop
 
@@ -89,18 +123,7 @@ SparkGarden follows a **Local-First** philosophy:
 
 ## 🤝 Contributing
 
-We love contributions! Specifically, we are looking for:
-*   **New Agent Personas**: Add a "Legal" agent or a "Marketing" agent.
-*   **Export Tools**: Export to PDF, Notion, or GitHub Issues.
-*   **UI Themes**: More "Dopamine" visual modes.
-
-1.  Fork the Project
-2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4.  Push to the Branch (`git push origin feature/AmazingFeature`)
-5.  Open a Pull Request
-
----
+We love contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to get started, report bugs, or suggest features.
 
 ## 📄 License
 
