@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { GoogleGenAI, Type } from '@google/genai';
 import { query } from '../db.js';
 import { getRequestId, logError, logInfo, logWarn, summarizeError, summarizeGeminiResponse } from '../logger.js';
+import { createObjectStorageClient } from '../objectStorage.js';
 import { requireAuth } from './auth.js';
 
 const router = Router();
@@ -517,12 +518,25 @@ Requirements:
       }
 
       const ext = imageMimeType.includes('jpeg') || imageMimeType.includes('jpg') ? 'jpg' : 'png';
-      const { Client } = await import('@replit/object-storage');
-      const client = new Client();
+      const client = createObjectStorageClient();
       const storageKey = `images/idea-${ideaId}/${Date.now()}.${ext}`;
       const buffer = Buffer.from(imageData, 'base64');
 
-      await client.uploadFromBytes(storageKey, buffer);
+      const uploadResult = await client.uploadFromBytes(storageKey, buffer);
+      if (!uploadResult.ok) {
+        logError('image.generate.storage_upload_failed', {
+          requestId,
+          ideaId,
+          userId,
+          storageKey,
+          bytes: buffer.length,
+          error: uploadResult.error,
+        });
+        return res.status(502).json({
+          error: 'Image upload failed after generation. Please try again.',
+          request_id: requestId,
+        });
+      }
 
       await query(
         'INSERT INTO images (idea_id, storage_key, prompt, aspect_ratio, style) VALUES ($1, $2, $3, $4, $5)',
@@ -568,6 +582,85 @@ Requirements:
       error: summarizeError(error),
     });
     return res.status(500).json({ error: 'Image generation failed. Please try again.', request_id: requestId });
+  }
+});
+
+router.delete('/:id/images/:imageId', async (req: Request, res: Response) => {
+  const requestId = getRequestId(req, res);
+  const requestStartedAt = Date.now();
+
+  try {
+    const userId = req.session.userId!;
+    const ideaId = parseInt(req.params.id as string);
+    const imageId = parseInt(req.params.imageId as string);
+
+    logInfo('image.delete.request', {
+      requestId,
+      userId,
+      ideaId,
+      imageId,
+    });
+
+    if (isNaN(ideaId) || isNaN(imageId)) {
+      return res.status(400).json({ error: 'Invalid idea or image ID', request_id: requestId });
+    }
+
+    const imageResult = await query(
+      `SELECT i.id, i.idea_id, i.storage_key
+       FROM images i
+       JOIN ideas d ON d.id = i.idea_id
+       WHERE i.id = $1 AND i.idea_id = $2 AND d.user_id = $3
+       LIMIT 1`,
+      [imageId, ideaId, userId]
+    );
+
+    if (imageResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Image not found', request_id: requestId });
+    }
+
+    const image = imageResult.rows[0] as { id: number; idea_id: number; storage_key: string };
+    const client = createObjectStorageClient();
+
+    let storageDeleted = false;
+    const storageDeleteResult = await client.delete(image.storage_key, { ignoreNotFound: true });
+    if (!storageDeleteResult.ok) {
+      logWarn('image.delete.storage_failed', {
+        requestId,
+        userId,
+        ideaId,
+        imageId,
+        storageKey: image.storage_key,
+        error: storageDeleteResult.error,
+      });
+    } else {
+      storageDeleted = true;
+    }
+
+    await query('DELETE FROM images WHERE id = $1 AND idea_id = $2', [imageId, ideaId]);
+
+    logInfo('image.delete.success', {
+      requestId,
+      userId,
+      ideaId,
+      imageId,
+      storageKey: image.storage_key,
+      storageDeleted,
+      durationMs: Date.now() - requestStartedAt,
+    });
+
+    return res.json({
+      deleted: true,
+      image_id: imageId,
+      storage_deleted: storageDeleted,
+      request_id: requestId,
+    });
+  } catch (error) {
+    logError('image.delete.failure', {
+      requestId,
+      durationMs: Date.now() - requestStartedAt,
+      error: summarizeError(error),
+    });
+    return res.status(500).json({ error: 'Image delete failed', request_id: requestId });
   }
 });
 

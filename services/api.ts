@@ -47,6 +47,8 @@ export const aiAPI = {
     fetchJSON(`/ideas/${id}/ai-chat`, { method: 'POST', body: JSON.stringify({ message, history }) }),
   generateImage: (id: number, data: { visual_mode?: string; aspect_ratio?: string; image_size?: string }) =>
     fetchJSON(`/ideas/${id}/generate-image`, { method: 'POST', body: JSON.stringify(data) }),
+  deleteImage: (id: number, imageId: number) =>
+    fetchJSON(`/ideas/${id}/images/${imageId}`, { method: 'DELETE' }),
   findPlaces: (id: number, location?: { lat: number; lng: number }) =>
     fetchJSON(`/ideas/${id}/find-places`, { method: 'POST', body: JSON.stringify({ location }) }),
 };

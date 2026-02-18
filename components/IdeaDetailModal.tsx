@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Idea, AspectRatio, ImageSize } from '../types';
-import { X, RefreshCw, Image as ImageIcon, MapPin, ExternalLink, Loader2, Maximize2, Send, NotebookPen, Bot, FileText, Palette, Globe, ChevronRight, LayoutTemplate, Brush, Wrench, Terminal, Copy, Check, Download } from 'lucide-react';
+import { X, RefreshCw, Image as ImageIcon, MapPin, ExternalLink, Loader2, Maximize2, Send, NotebookPen, Bot, FileText, Palette, Globe, ChevronRight, LayoutTemplate, Brush, Wrench, Terminal, Copy, Check, Download, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ideasAPI, aiAPI } from '../services/api';
 
@@ -23,6 +23,7 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
 
   const [isGeneratingImg, setIsGeneratingImg] = useState(false);
   const [isSearchingMaps, setIsSearchingMaps] = useState(false);
+  const [deletingImageId, setDeletingImageId] = useState<number | null>(null);
   const [visualMode, setVisualMode] = useState<VisualMode>('artistic');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>(AspectRatio.SQUARE);
   const [imgSize, setImgSize] = useState<ImageSize>(ImageSize.ONE_K);
@@ -116,6 +117,30 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
     }
   };
 
+  const handleDeleteImage = async (img: any) => {
+    if (!img?.id) return;
+
+    if (!window.confirm('Delete this concept image? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeletingImageId(img.id);
+    try {
+      await aiAPI.deleteImage(idea.id, img.id);
+      if (previewImage && img.storage_key && previewImage === getImageUrl(img)) {
+        setPreviewImage(null);
+      }
+      const freshIdea = await ideasAPI.get(idea.id);
+      if (isMounted.current) {
+        onUpdateIdea(freshIdea.idea, false);
+      }
+    } catch (e) {
+      alert("Failed to delete image.");
+    } finally {
+      if (isMounted.current) setDeletingImageId(null);
+    }
+  };
+
   const handleCopyPrompt = () => {
     const text = idea.analysis?.one_shot_prompt || "";
     navigator.clipboard.writeText(text).then(() => {
@@ -138,7 +163,7 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
 
   const getImageUrl = (img: any) => {
     if (img.storage_key) {
-      return `/api/images/${img.storage_key}`;
+      return `/api/images/${encodeURIComponent(img.storage_key)}`;
     }
     return img.url;
   };
@@ -236,6 +261,14 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
              return (
                <div key={img.id || i} className="relative group rounded-sm overflow-hidden shadow-lg border-4 border-white bg-white cursor-pointer rotate-1 even:-rotate-1 hover:rotate-0 transition-transform duration-300" onClick={() => setPreviewImage(imgUrl)}>
                  <img src={imgUrl} alt="Concept" className="w-full object-cover" />
+                 <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteImage(img); }}
+                    disabled={deletingImageId === img.id}
+                    className="absolute top-2 right-2 z-20 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 disabled:opacity-50 transition-colors"
+                    title="Delete image"
+                  >
+                    {deletingImageId === img.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                 </button>
                  {img.style === 'ui-flow' && (
                     <div className="absolute top-2 left-2 bg-indigo-600/90 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-sm font-bold uppercase tracking-widest shadow-sm">
                       UI Flow

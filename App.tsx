@@ -32,6 +32,7 @@ const App: React.FC = () => {
   
   const [newTitle, setNewTitle] = useState('');
   const [newPrompt, setNewPrompt] = useState('');
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   useEffect(() => {
     authAPI.me()
@@ -184,7 +185,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen pb-20 relative bg-[#FDFBF7]">
       
-      <header className="sticky top-0 z-20 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-stone-200/50 py-4 px-4 md:px-12 flex items-center justify-between">
+      <header className="sticky top-0 z-30 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-stone-200/50 py-4 px-4 md:px-12 flex items-center justify-between">
         <button 
           onClick={() => setCurrentView('landing')}
           className="flex items-center gap-2 group hover:opacity-80 transition-opacity"
@@ -196,33 +197,92 @@ const App: React.FC = () => {
           <h1 className="font-display text-2xl font-medium tracking-tight text-gray-900">SparkGarden</h1>
         </button>
         
-        <div className="flex items-center gap-4">
-           <button onClick={() => setCurrentView('landing')} className="md:hidden text-stone-500">
-             <Home size={20} />
-           </button>
-
+        <div className="flex items-center gap-3">
            {user && (
-             <span className="hidden md:inline text-sm text-stone-500 font-medium">
+             <span className="hidden lg:inline text-sm text-stone-500 font-medium mr-2">
                {user.name}
              </span>
            )}
 
            <button 
             onClick={() => setShowNewIdeaInput(true)}
-            className="bg-black hover:bg-stone-800 text-white px-5 py-2.5 rounded-full font-medium transition-transform active:scale-95 shadow-lg flex items-center gap-2"
+            className="bg-black hover:bg-stone-800 text-white px-4 py-2 md:px-5 md:py-2.5 rounded-full font-medium transition-transform active:scale-95 shadow-lg flex items-center gap-2 z-10"
           >
             <Plus size={18} />
-            <span className="hidden md:inline">New Seed</span>
-            <span className="inline md:hidden">Seed</span>
+            <span className="hidden sm:inline">New Seed</span>
+            <span className="inline sm:hidden">Seed</span>
           </button>
 
-          <button
-            onClick={handleLogout}
-            className="text-stone-400 hover:text-stone-600 transition-colors p-2 rounded-full hover:bg-stone-100"
-            title="Log out"
-          >
-            <LogOut size={18} />
-          </button>
+          {/* Desktop Nav */}
+          <div className="hidden md:flex items-center gap-3">
+            <button 
+              onClick={() => setCurrentView('landing')} 
+              className="text-stone-400 hover:text-stone-600 p-2 rounded-full hover:bg-stone-100 transition-colors"
+              title="Home"
+            >
+              <Home size={20} />
+            </button>
+            <button
+              onClick={handleLogout}
+              className="text-stone-400 hover:text-stone-600 transition-colors p-2 rounded-full hover:bg-stone-100"
+              title="Log out"
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
+
+          {/* Mobile Menu Toggle */}
+          <div className="md:hidden relative">
+            <button 
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="w-10 h-10 flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl bg-stone-100 hover:bg-stone-200 transition-colors border border-stone-200"
+            >
+              <div className={`w-5 h-0.5 bg-stone-600 transition-all ${showMobileMenu ? 'rotate-45 translate-y-2' : ''}`} />
+              <div className={`w-5 h-0.5 bg-stone-600 transition-all ${showMobileMenu ? 'opacity-0' : ''}`} />
+              <div className={`w-5 h-0.5 bg-stone-600 transition-all ${showMobileMenu ? '-rotate-45 -translate-y-2' : ''}`} />
+            </button>
+
+            {/* Notebook Style Dropdown */}
+            {showMobileMenu && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setShowMobileMenu(false)} 
+                />
+                <div className="absolute right-0 mt-3 w-48 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="bg-[#FFFEF9] rounded-2xl shadow-2xl border-2 border-stone-900 overflow-hidden relative"
+                       style={{
+                         backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, #E8DCC8 31px, #E8DCC8 32px)',
+                         backgroundPosition: '0 10px',
+                       }}>
+                    <div className="absolute left-6 top-0 w-px h-full bg-red-200/60" />
+                    
+                    <button 
+                      onClick={() => {
+                        setCurrentView('landing');
+                        setShowMobileMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-8 py-4 hover:bg-stone-50 transition-colors text-left group"
+                    >
+                      <Home size={18} className="text-stone-400 group-hover:text-stone-900" />
+                      <span className="font-hand text-lg text-stone-900">Home</span>
+                    </button>
+                    
+                    <button 
+                      onClick={() => {
+                        handleLogout();
+                        setShowMobileMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-8 py-4 hover:bg-stone-50 transition-colors text-left group border-t border-stone-200/50"
+                    >
+                      <LogOut size={18} className="text-stone-400 group-hover:text-stone-900" />
+                      <span className="font-hand text-lg text-stone-900">Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
