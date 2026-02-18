@@ -50,6 +50,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [favoriteBusyIdeaId, setFavoriteBusyIdeaId] = useState<number | null>(null);
   const [isRuntimeExpanded, setIsRuntimeExpanded] = useState(false);
+  const [isUsageExpanded, setIsUsageExpanded] = useState(false);
 
   const loadProfile = async () => {
     setLoading(true);
@@ -289,28 +290,37 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
             )}
           </section>
 
-          <section className="rounded-2xl border border-stone-200 bg-white/80 p-5 shadow-sm">
-            <h3 className="font-display text-xl text-stone-900 mb-4">Monthly Image Usage by Idea</h3>
-            <div className="space-y-2">
-              {profile.quota.images_per_idea.usage_by_idea.slice(0, 8).map((row) => {
-                const percent = clampPercent((row.used / Math.max(row.limit, 1)) * 100);
-                return (
-                  <div key={row.idea_id} className="rounded-xl border border-stone-200 bg-[#FFFEF9] p-3">
-                    <div className="flex items-center justify-between text-sm mb-1 gap-4">
-                      <span className="font-medium text-stone-800 truncate">{row.idea_title}</span>
-                      <span className="text-stone-600 whitespace-nowrap">
-                        {row.used}/{row.limit}
-                      </span>
+          <section className="rounded-2xl border border-stone-200 bg-white/80 shadow-sm overflow-hidden transition-all duration-300">
+            <button 
+              onClick={() => setIsUsageExpanded(!isUsageExpanded)}
+              className="w-full p-5 flex items-center justify-between hover:bg-stone-50 transition-colors text-left"
+            >
+              <h3 className="font-display text-xl text-stone-900">Monthly Image Usage by Idea</h3>
+              <ChevronDown className={`text-stone-400 transition-transform duration-300 ${isUsageExpanded ? 'rotate-180' : ''}`} size={20} />
+            </button>
+            
+            <div className={`transition-all duration-300 ease-in-out ${isUsageExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
+              <div className="p-5 pt-0 space-y-2">
+                {profile.quota.images_per_idea.usage_by_idea.slice(0, 8).map((row) => {
+                  const percent = clampPercent((row.used / Math.max(row.limit, 1)) * 100);
+                  return (
+                    <div key={row.idea_id} className="rounded-xl border border-stone-200 bg-[#FFFEF9] p-3">
+                      <div className="flex items-center justify-between text-sm mb-1 gap-4">
+                        <span className="font-medium text-stone-800 truncate">{row.idea_title}</span>
+                        <span className="text-stone-600 whitespace-nowrap">
+                          {row.used}/{row.limit}
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-stone-200 overflow-hidden">
+                        <div className="h-full bg-stone-700" style={{ width: `${percent}%` }} />
+                      </div>
                     </div>
-                    <div className="h-1.5 rounded-full bg-stone-200 overflow-hidden">
-                      <div className="h-full bg-stone-700" style={{ width: `${percent}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-              {profile.quota.images_per_idea.usage_by_idea.length === 0 && (
-                <div className="text-sm text-stone-500">No image usage yet this month.</div>
-              )}
+                  );
+                })}
+                {profile.quota.images_per_idea.usage_by_idea.length === 0 && (
+                  <div className="text-sm text-stone-500">No image usage yet this month.</div>
+                )}
+              </div>
             </div>
           </section>
 
