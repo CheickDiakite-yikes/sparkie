@@ -86,9 +86,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
     setError('');
   };
 
-  const inputClass = "w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-transparent border-b-2 border-amber-200/60 text-gray-900 placeholder-stone-400 focus:outline-none focus:border-amber-400 transition-all font-hand text-base sm:text-lg";
+  const inputClass = "w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-transparent border-b-2 border-amber-300/70 text-gray-900 placeholder-stone-500 focus:outline-none focus:border-amber-500 transition-all font-hand text-base sm:text-lg";
 
-  const labelClass = "block text-xs sm:text-sm font-medium text-stone-500 mb-0.5 sm:mb-1 tracking-wide uppercase";
+  const labelClass = "block text-xs sm:text-sm font-semibold text-stone-700 mb-0.5 sm:mb-1 tracking-wide uppercase";
 
   return (
     <div className="min-h-screen min-h-[100dvh] bg-[#FDFBF7] flex flex-col items-center justify-start sm:justify-center px-4 py-6 sm:py-8 relative overflow-y-auto">
@@ -115,7 +115,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
             <Sparkles className="text-amber-200 w-5 h-5 sm:w-7 sm:h-7" />
           </div>
           <h1 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-gray-900">SparkGarden</h1>
-          <p className="font-hand text-sm sm:text-lg text-stone-500 mt-0.5">
+          <p className="font-hand text-sm sm:text-lg text-stone-600 mt-0.5">
             {mode === 'signup' ? 'Plant your first idea today' : 'Welcome back, gardener'}
           </p>
         </div>
@@ -136,13 +136,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
             <div className="flex bg-amber-50/80 p-0.5 sm:p-1 rounded-lg mb-4 sm:mb-5 border border-amber-100/50">
               <button
                 onClick={() => { setMode('signup'); setError(''); }}
-                className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-md transition-all duration-200 ${mode === 'signup' ? 'bg-white shadow-sm text-gray-900 border border-amber-100/60' : 'text-stone-400 hover:text-stone-600'}`}
+                className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-md transition-all duration-200 ${mode === 'signup' ? 'bg-white shadow-sm text-gray-900 border border-amber-100/60' : 'text-stone-600 hover:text-stone-800'}`}
               >
                 Sign Up
               </button>
               <button
                 onClick={() => { setMode('login'); setError(''); }}
-                className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-md transition-all duration-200 ${mode === 'login' ? 'bg-white shadow-sm text-gray-900 border border-amber-100/60' : 'text-stone-400 hover:text-stone-600'}`}
+                className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-md transition-all duration-200 ${mode === 'login' ? 'bg-white shadow-sm text-gray-900 border border-amber-100/60' : 'text-stone-600 hover:text-stone-800'}`}
               >
                 Log In
               </button>
@@ -213,7 +213,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                   </div>
 
                   <div className="pt-2 sm:pt-3 border-t border-dashed border-amber-200/60">
-                    <label className={labelClass}>Job / Role <span className="text-stone-300 normal-case">(optional)</span></label>
+                    <label className={labelClass}>Job / Role <span className="text-stone-500 normal-case">(optional)</span></label>
                     <input
                       type="text"
                       value={jobRole}
@@ -224,7 +224,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                   </div>
 
                   <div>
-                    <label className={labelClass}>How did you find us? <span className="text-stone-300 normal-case">(optional)</span></label>
+                    <label className={labelClass}>How did you find us? <span className="text-stone-500 normal-case">(optional)</span></label>
                     <select
                       value={referralSource}
                       onChange={(e) => setReferralSource(e.target.value)}
@@ -257,9 +257,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
               </button>
             </form>
 
-            <p className="text-center text-xs sm:text-sm text-stone-400 mt-4 sm:mt-5 font-hand">
+            <p className="text-center text-xs sm:text-sm text-stone-600 mt-4 sm:mt-5 font-hand">
               {mode === 'signup' ? 'Already have an account?' : "Don't have an account?"}{' '}
-              <button onClick={switchMode} className="text-amber-700 font-bold hover:underline underline-offset-2">
+              <button onClick={switchMode} className="text-amber-800 font-bold hover:underline underline-offset-2">
                 {mode === 'signup' ? 'Log in' : 'Sign up'}
               </button>
             </p>
@@ -269,7 +269,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
           <div className="absolute -bottom-2.5 left-4 right-4 h-2 bg-amber-50/20 rounded-b-md -z-20 border-x border-b border-amber-100/20" />
         </div>
 
-        <p className="text-center text-[10px] sm:text-xs text-stone-400 mt-4 sm:mt-6 font-hand">
+        <p className="text-center text-[10px] sm:text-xs text-stone-500 mt-4 sm:mt-6 font-hand">
           Your ideas stay private & secure
         </p>
       </div>
