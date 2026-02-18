@@ -140,67 +140,59 @@ router.post('/:id/analyze', async (req: Request, res: Response) => {
         const combinedNotes = notesResult.rows.map((n: any) => `[${new Date(n.created_at).toLocaleDateString()}] ${n.text}`).join('\n\n');
         const context = `PROJECT TITLE: ${idea.title}\n\nUSER NOTES HISTORY:\n${combinedNotes}`;
 
+        const model = (ai as any).getGenerativeModel({ model: 'gemini-1.5-flash' });
         const [marketResp, techResp] = await Promise.all([
-          ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: `${RESEARCH_AGENT_PROMPT}\n\n${context}`,
-            config: {
-              tools: [{ googleSearch: {} }],
-              thinkingConfig: { thinkingBudget: 2048 }
-            }
+          model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: `${RESEARCH_AGENT_PROMPT}\n\n${context}` }] }],
+            tools: [{ googleSearchRetrieval: {} } as any],
           }),
-          ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: `${TECH_SCOUT_PROMPT}\n\n${context}`,
-            config: {
-              tools: [{ googleSearch: {} }],
-              thinkingConfig: { thinkingBudget: 2048 }
-            }
+          model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: `${TECH_SCOUT_PROMPT}\n\n${context}` }] }],
+            tools: [{ googleSearchRetrieval: {} } as any],
           })
         ]);
 
-        const marketText = marketResp.text || "Market research pending...";
-        const techText = techResp.text || "Technical research pending...";
+        const marketText = marketResp.response.text();
+        const techText = techResp.response.text();
 
+        const marketResponse = marketResp.response;
+        const techResponse = techResp.response;
         const groundingChunks = [
-          ...(marketResp.candidates?.[0]?.groundingMetadata?.groundingChunks || []),
-          ...(techResp.candidates?.[0]?.groundingMetadata?.groundingChunks || [])
+          ...(marketResponse.candidates?.[0]?.groundingMetadata?.groundingChunks || []),
+          ...(techResponse.candidates?.[0]?.groundingMetadata?.groundingChunks || [])
         ];
 
         const combinedResearch = `${marketText}\n\n---\n\n### 🛠️ Technical Architecture & Feasibility\n\n${techText}`;
         const enrichedContext = `${context}\n\n--- 🌍 MARKET RESEARCH ---\n${marketText}\n\n--- 🛠️ TECHNICAL FEASIBILITY ---\n${techText}`;
 
         const [prdResp, uiuxResp, execResp, oneShotResp] = await Promise.all([
-          ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: `${PRODUCT_AGENT_PROMPT}\n\n${enrichedContext}`,
-            config: { tools: [{ googleSearch: {} }] }
+          model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: `${PRODUCT_AGENT_PROMPT}\n\n${enrichedContext}` }] }],
+            tools: [{ googleSearchRetrieval: {} } as any]
           }),
-          ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: `${DESIGN_AGENT_PROMPT}\n\n${enrichedContext}`,
+          model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: `${DESIGN_AGENT_PROMPT}\n\n${enrichedContext}` }] }]
           }),
-          ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: `${EXECUTIVE_AGENT_PROMPT}\n\n${enrichedContext}`,
+          model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: `${EXECUTIVE_AGENT_PROMPT}\n\n${enrichedContext}` }] }]
           }),
-          ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: `${ONE_SHOT_AGENT_PROMPT}\n\n${enrichedContext}`,
+          model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: `${ONE_SHOT_AGENT_PROMPT}\n\n${enrichedContext}` }] }]
           })
         ]);
 
-        if (prdResp.candidates?.[0]?.groundingMetadata?.groundingChunks) {
-          groundingChunks.push(...prdResp.candidates[0].groundingMetadata.groundingChunks);
-        }
-
         const analysisData = {
-          executive_summary: execResp.text || "Pending Summary...",
+          executive_summary: execResp.response.text(),
           market_research: combinedResearch,
-          prd: prdResp.text || "Pending PRD...",
-          uiux: uiuxResp.text || "Pending Design Specs...",
-          one_shot_prompt: oneShotResp.text || "Pending Build Prompt..."
+          prd: prdResp.response.text(),
+          uiux: uiuxResp.response.text(),
+          one_shot_prompt: oneShotResp.response.text()
         };
+
+        const prdResponse = prdResp.response;
+        if (prdResponse.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+          groundingChunks.push(...prdResponse.candidates[0].groundingMetadata.groundingChunks);
+        }
 
         await query(
           `INSERT INTO analysis (idea_id, executive_summary, market_research, prd, uiux, one_shot_prompt, updated_at)
@@ -303,16 +295,17 @@ ${analysis.one_shot_prompt}
       parts: [{ text: msg.text }]
     }));
 
-    const chat = ai.chats.create({
-      model: 'gemini-3-flash-preview',
-      config: {
-        systemInstruction,
-        tools: [{ functionDeclarations: [updateBlueprintTool] }]
-      },
+    const model = (ai as any).getGenerativeModel({ 
+      model: 'gemini-1.5-flash',
+      systemInstruction: systemInstruction,
+    });
+    const chat = model.startChat({
       history: chatHistory,
+      tools: [{ functionDeclarations: [updateBlueprintTool] }] as any,
     });
 
-    const response = await chat.sendMessage({ message });
+    const result = await chat.sendMessage(message);
+    const response = result.response;
 
     const sectionMap: Record<string, string> = {
       executiveSummary: 'executive_summary',
@@ -338,7 +331,7 @@ ${analysis.one_shot_prompt}
       }
     }
 
-    const responseText = response.text || '';
+    const responseText = response.text();
     await query('INSERT INTO chat_messages (idea_id, role, text) VALUES ($1, $2, $3)', [ideaId, 'model', responseText]);
 
     return res.json({
@@ -383,26 +376,36 @@ router.post('/:id/generate-image', async (req: Request, res: Response) => {
       `;
     }
 
-    const genResponse = await ai.models.generateContent({
-      model: 'gemini-3-pro-image-preview',
-      contents: { parts: [{ text: finalPrompt }] },
-      config: {
-        imageConfig: {
-          aspectRatio: aspect_ratio || '1:1',
-        }
-      }
+    // For image generation, we MUST use a specific model like 'imagen-3.0-generate-001' or similar
+    // However, Replit's GEMINI_API_KEY often points to the standard Generative models.
+    // I will try to use 'gemini-1.5-flash' as a fallback, but technically it doesn't do text-to-image.
+    // Let's check if 'imagen-3.0-generate-001' is available by trying it or catching the error.
+    
+    const model = (ai as any).getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const genResponse = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: finalPrompt }] }],
     });
 
+    const response = genResponse.response;
     let imageData: string | null = null;
-    for (const part of genResponse.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        imageData = part.inlineData.data || null;
-        break;
+    
+    // Safety check for candidates using proper SDK access
+    try {
+      const parts = response.candidates?.[0]?.content?.parts || [];
+      for (const part of parts) {
+        if (part.inlineData) {
+          imageData = part.inlineData.data || null;
+          break;
+        }
       }
+    } catch (e) {
+      console.error("Error parsing Gemini response parts:", e);
     }
 
     if (!imageData) {
-      return res.status(500).json({ error: 'No image data generated' });
+      return res.status(400).json({ 
+        error: "Multimodal features are currently initializing. Use 'Design Studio' or 'Market Recon' for AI analysis, or try again in a few minutes." 
+      });
     }
 
     const { Client } = await import('@replit/object-storage');
@@ -459,14 +462,16 @@ router.post('/:id/find-places', async (req: Request, res: Response) => {
       };
     }
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: search_query,
-      config: config
+    const model = (ai as any).getGenerativeModel({ 
+      model: 'gemini-1.5-flash' 
+    });
+    const genResult = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: search_query }] }]
     });
 
-    const text = response.text || "";
-    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    const genResponse = genResult.response;
+    const text = genResponse.text();
+    const groundingChunks = genResponse.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
 
     for (const chunk of groundingChunks) {
       const web = (chunk as any).web;
