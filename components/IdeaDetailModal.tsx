@@ -278,22 +278,22 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
           <X size={24} />
         </button>
 
-        <div className="w-full md:w-64 bg-stone-100 border-b md:border-b-0 md:border-r border-stone-200 flex flex-col flex-shrink-0 max-h-[40vh] md:max-h-full">
-           <div className="p-4 md:p-6 border-b border-stone-200 bg-stone-50">
-             <h2 className="font-display text-xl md:text-2xl text-gray-900 leading-tight mb-1 line-clamp-1 md:line-clamp-2">{idea.title}</h2>
-             <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Project Workspace</span>
+        <div className="w-full md:w-64 bg-[#DCC7B1] border-b md:border-b-0 md:border-r border-[#B8A38D] flex flex-col flex-shrink-0 max-h-[40vh] md:max-h-full relative shadow-[inset_-10px_0_15px_-5px_rgba(0,0,0,0.1)]">
+           <div className="p-4 md:p-6 border-b border-[#B8A38D] bg-[#C5B09A]/50 backdrop-blur-sm">
+             <h2 className="font-display text-xl md:text-2xl text-stone-900 leading-tight mb-1 line-clamp-1 md:line-clamp-2">{idea.title}</h2>
+             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-700/60">Project Workspace</span>
            </div>
 
-           <div className="flex-1 overflow-y-auto p-2 md:p-4 space-y-1 md:space-y-2">
+           <div className="flex-1 overflow-y-auto p-2 md:p-4 space-y-1 md:space-y-2 scrollbar-hide">
               <button 
                 onClick={() => setActiveTab('notebook')}
-                className={`w-full text-left px-3 py-2 md:px-4 md:py-3 rounded-xl flex items-center gap-3 transition-colors ${activeTab === 'notebook' ? 'bg-white shadow-sm text-black ring-1 ring-black/5' : 'text-gray-500 hover:bg-stone-200/50'}`}
+                className={`w-full text-left px-3 py-2 md:px-4 md:py-3 rounded-xl flex items-center gap-3 transition-all duration-200 ${activeTab === 'notebook' ? 'bg-[#FFFEF9] shadow-md text-stone-900 ring-1 ring-black/5 scale-[1.02]' : 'text-stone-700 hover:bg-white/20'}`}
               >
                 <NotebookPen size={18} />
-                <span className="font-medium">My Notebook</span>
+                <span className="font-bold tracking-tight">My Notebook</span>
               </button>
 
-              <div className="pt-2 md:pt-4 pb-1 md:pb-2 px-3 md:px-4 text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-wider">
+              <div className="pt-4 md:pt-6 pb-2 px-4 text-[10px] font-bold text-stone-700/40 uppercase tracking-[0.2em]">
                 AI Blueprints
               </div>
 
@@ -308,33 +308,28 @@ const IdeaDetailModal: React.FC<IdeaDetailModalProps> = ({ idea, onClose, onUpda
                   key={item.id}
                   onClick={() => { setActiveTab('blueprints'); setActiveBlueprint(item.id); }}
                   className={`
-                    w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-lg flex items-center gap-3 transition-colors text-sm
+                    w-full text-left px-3 py-2 md:px-4 md:py-2.5 rounded-xl flex items-center gap-3 transition-all duration-200 text-sm
                     ${(activeTab === 'blueprints' && activeBlueprint === item.id) 
-                      ? 'bg-indigo-50 text-indigo-700 font-semibold' 
-                      : 'text-gray-600 hover:bg-stone-200/50'}
+                      ? 'bg-[#FFFEF9] text-stone-900 font-bold shadow-md scale-[1.02]' 
+                      : 'text-stone-700 hover:bg-white/20'}
                   `}
                 >
                   <item.icon size={16} />
-                  <span>{item.label}</span>
-                  {(activeTab === 'blueprints' && activeBlueprint === item.id) && <ChevronRight size={14} className="ml-auto opacity-50"/>}
+                  <span className="tracking-tight">{item.label}</span>
+                  {(activeTab === 'blueprints' && activeBlueprint === item.id) && <ChevronRight size={14} className="ml-auto opacity-40"/>}
                 </button>
               ))}
 
               <button 
                 onClick={() => setActiveTab('tools')}
-                className={`xl:hidden w-full text-left px-3 py-2 md:px-4 md:py-3 rounded-xl flex items-center gap-3 transition-colors mt-2 ${activeTab === 'tools' ? 'bg-white shadow-sm text-black ring-1 ring-black/5' : 'text-gray-500 hover:bg-stone-200/50'}`}
+                className={`xl:hidden w-full text-left px-3 py-2 md:px-4 md:py-3 rounded-xl flex items-center gap-3 transition-all duration-200 mt-2 ${activeTab === 'tools' ? 'bg-[#FFFEF9] shadow-md text-stone-900 ring-1 ring-black/5 scale-[1.02]' : 'text-stone-700 hover:bg-white/20'}`}
               >
                 <Wrench size={18} />
-                <span className="font-medium">Studio Tools</span>
+                <span className="font-bold tracking-tight">Studio Tools</span>
               </button>
-
-              {idea.status === 'processing' && (
-                <div className="mt-4 p-3 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center gap-2 text-xs text-indigo-700 animate-pulse">
-                  <Loader2 size={14} className="animate-spin" />
-                  Agents working...
-                </div>
-              )}
            </div>
+           
+           <div className="absolute top-4 left-1/2 -translate-x-1/2 w-12 h-3 bg-stone-800/20 rounded-full blur-[2px] -z-10 opacity-50" />
         </div>
 
         <div className="flex-1 flex flex-col min-w-0 bg-white h-full overflow-hidden">
