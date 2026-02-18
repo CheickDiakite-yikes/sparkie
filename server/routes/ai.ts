@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { GoogleGenAI, Type, FunctionDeclaration, GenerateContentResponse } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 import { query } from '../db.js';
 import { requireAuth } from './auth.js';
 
@@ -7,6 +7,8 @@ const router = Router();
 router.use(requireAuth);
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+const MODEL = 'gemini-2.0-flash';
 
 const RESEARCH_AGENT_PROMPT = `
 You are an Elite Market Researcher & Trend Analyst. 
@@ -93,10 +95,10 @@ Highlight the biggest Opportunity and the biggest Risk.
 Keep it under 200 words. Make it punchy.
 `;
 
-const updateBlueprintTool: FunctionDeclaration = {
+const updateBlueprintTool = {
   name: 'updateProjectBlueprint',
   description: 'Updates a specific section of the project documentation (Blueprints). Use this when the user asks to modify or rewrite the PRD, Design, Strategy, Research, or the One-Shot Prompt.',
-  parameters: {
+  parametersJsonSchema: {
     type: Type.OBJECT,
     properties: {
       section: {
@@ -140,58 +142,66 @@ router.post('/:id/analyze', async (req: Request, res: Response) => {
         const combinedNotes = notesResult.rows.map((n: any) => `[${new Date(n.created_at).toLocaleDateString()}] ${n.text}`).join('\n\n');
         const context = `PROJECT TITLE: ${idea.title}\n\nUSER NOTES HISTORY:\n${combinedNotes}`;
 
-        const model = (ai as any).getGenerativeModel({ model: 'gemini-1.5-flash' });
         const [marketResp, techResp] = await Promise.all([
-          model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: `${RESEARCH_AGENT_PROMPT}\n\n${context}` }] }],
-            tools: [{ googleSearchRetrieval: {} } as any],
+          ai.models.generateContent({
+            model: MODEL,
+            contents: `${RESEARCH_AGENT_PROMPT}\n\n${context}`,
+            config: {
+              tools: [{ googleSearch: {} }],
+            },
           }),
-          model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: `${TECH_SCOUT_PROMPT}\n\n${context}` }] }],
-            tools: [{ googleSearchRetrieval: {} } as any],
+          ai.models.generateContent({
+            model: MODEL,
+            contents: `${TECH_SCOUT_PROMPT}\n\n${context}`,
+            config: {
+              tools: [{ googleSearch: {} }],
+            },
           })
         ]);
 
-        const marketText = marketResp.response.text();
-        const techText = techResp.response.text();
+        const marketText = marketResp.text || "Market research pending...";
+        const techText = techResp.text || "Technical research pending...";
 
-        const marketResponse = marketResp.response;
-        const techResponse = techResp.response;
-        const groundingChunks = [
-          ...(marketResponse.candidates?.[0]?.groundingMetadata?.groundingChunks || []),
-          ...(techResponse.candidates?.[0]?.groundingMetadata?.groundingChunks || [])
+        const groundingChunks: any[] = [
+          ...(marketResp.candidates?.[0]?.groundingMetadata?.groundingChunks || []),
+          ...(techResp.candidates?.[0]?.groundingMetadata?.groundingChunks || [])
         ];
 
         const combinedResearch = `${marketText}\n\n---\n\n### 🛠️ Technical Architecture & Feasibility\n\n${techText}`;
         const enrichedContext = `${context}\n\n--- 🌍 MARKET RESEARCH ---\n${marketText}\n\n--- 🛠️ TECHNICAL FEASIBILITY ---\n${techText}`;
 
         const [prdResp, uiuxResp, execResp, oneShotResp] = await Promise.all([
-          model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: `${PRODUCT_AGENT_PROMPT}\n\n${enrichedContext}` }] }],
-            tools: [{ googleSearchRetrieval: {} } as any]
+          ai.models.generateContent({
+            model: MODEL,
+            contents: `${PRODUCT_AGENT_PROMPT}\n\n${enrichedContext}`,
+            config: {
+              tools: [{ googleSearch: {} }],
+            }
           }),
-          model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: `${DESIGN_AGENT_PROMPT}\n\n${enrichedContext}` }] }]
+          ai.models.generateContent({
+            model: MODEL,
+            contents: `${DESIGN_AGENT_PROMPT}\n\n${enrichedContext}`,
           }),
-          model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: `${EXECUTIVE_AGENT_PROMPT}\n\n${enrichedContext}` }] }]
+          ai.models.generateContent({
+            model: MODEL,
+            contents: `${EXECUTIVE_AGENT_PROMPT}\n\n${enrichedContext}`,
           }),
-          model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: `${ONE_SHOT_AGENT_PROMPT}\n\n${enrichedContext}` }] }]
+          ai.models.generateContent({
+            model: MODEL,
+            contents: `${ONE_SHOT_AGENT_PROMPT}\n\n${enrichedContext}`,
           })
         ]);
 
         const analysisData = {
-          executive_summary: execResp.response.text(),
+          executive_summary: execResp.text || "Pending Summary...",
           market_research: combinedResearch,
-          prd: prdResp.response.text(),
-          uiux: uiuxResp.response.text(),
-          one_shot_prompt: oneShotResp.response.text()
+          prd: prdResp.text || "Pending PRD...",
+          uiux: uiuxResp.text || "Pending Design Specs...",
+          one_shot_prompt: oneShotResp.text || "Pending Build Prompt..."
         };
 
-        const prdResponse = prdResp.response;
-        if (prdResponse.candidates?.[0]?.groundingMetadata?.groundingChunks) {
-          groundingChunks.push(...prdResponse.candidates[0].groundingMetadata.groundingChunks);
+        if (prdResp.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+          groundingChunks.push(...prdResp.candidates[0].groundingMetadata.groundingChunks);
         }
 
         await query(
@@ -295,17 +305,16 @@ ${analysis.one_shot_prompt}
       parts: [{ text: msg.text }]
     }));
 
-    const model = (ai as any).getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
-      systemInstruction: systemInstruction,
-    });
-    const chat = model.startChat({
+    const chat = ai.chats.create({
+      model: MODEL,
+      config: {
+        systemInstruction: systemInstruction,
+        tools: [{ functionDeclarations: [updateBlueprintTool] }],
+      },
       history: chatHistory,
-      tools: [{ functionDeclarations: [updateBlueprintTool] }] as any,
     });
 
-    const result = await chat.sendMessage(message);
-    const response = result.response;
+    const result = await chat.sendMessage({ message });
 
     const sectionMap: Record<string, string> = {
       executiveSummary: 'executive_summary',
@@ -316,22 +325,23 @@ ${analysis.one_shot_prompt}
     };
 
     let toolCallResults: any[] = [];
-    const parts = response.candidates?.[0]?.content?.parts || [];
-    for (const part of parts) {
-      if (part.functionCall && part.functionCall.name === 'updateProjectBlueprint') {
-        const args = part.functionCall.args as any;
-        const dbColumn = sectionMap[args.section];
-        if (dbColumn && args.content) {
-          await query(
-            `UPDATE analysis SET ${dbColumn} = $1, updated_at = NOW() WHERE idea_id = $2`,
-            [args.content, ideaId]
-          );
-          toolCallResults.push({ section: args.section, updated: true });
+    if (result.functionCalls) {
+      for (const fc of result.functionCalls) {
+        if (fc.name === 'updateProjectBlueprint') {
+          const args = fc.args as any;
+          const dbColumn = sectionMap[args.section];
+          if (dbColumn && args.content) {
+            await query(
+              `UPDATE analysis SET ${dbColumn} = $1, updated_at = NOW() WHERE idea_id = $2`,
+              [args.content, ideaId]
+            );
+            toolCallResults.push({ section: args.section, updated: true });
+          }
         }
       }
     }
 
-    const responseText = response.text();
+    const responseText = result.text || '';
     await query('INSERT INTO chat_messages (idea_id, role, text) VALUES ($1, $2, $3)', [ideaId, 'model', responseText]);
 
     return res.json({
@@ -376,54 +386,62 @@ router.post('/:id/generate-image', async (req: Request, res: Response) => {
       `;
     }
 
-    // For image generation, we MUST use a specific model like 'imagen-3.0-generate-001' or similar
-    // However, Replit's GEMINI_API_KEY often points to the standard Generative models.
-    // I will try to use 'gemini-1.5-flash' as a fallback, but technically it doesn't do text-to-image.
-    // Let's check if 'imagen-3.0-generate-001' is available by trying it or catching the error.
-    
-    const model = (ai as any).getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const genResponse = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: finalPrompt }] }],
-    });
+    const aspectMap: Record<string, string> = {
+      '1:1': '1:1',
+      '16:9': '16:9',
+      '9:16': '9:16',
+      '4:3': '4:3',
+      '3:4': '3:4',
+    };
 
-    const response = genResponse.response;
-    let imageData: string | null = null;
-    
-    // Safety check for candidates using proper SDK access
     try {
-      const parts = response.candidates?.[0]?.content?.parts || [];
-      for (const part of parts) {
-        if (part.inlineData) {
-          imageData = part.inlineData.data || null;
-          break;
-        }
-      }
-    } catch (e) {
-      console.error("Error parsing Gemini response parts:", e);
-    }
-
-    if (!imageData) {
-      return res.status(400).json({ 
-        error: "Multimodal features are currently initializing. Use 'Design Studio' or 'Market Recon' for AI analysis, or try again in a few minutes." 
+      const response = await ai.models.generateImages({
+        model: 'imagen-3.0-generate-002',
+        prompt: finalPrompt,
+        config: {
+          numberOfImages: 1,
+          aspectRatio: aspectMap[aspect_ratio] || '1:1',
+        },
       });
+
+      if (!response.generatedImages || response.generatedImages.length === 0) {
+        return res.status(400).json({
+          error: "Image generation returned no results. The prompt may have been filtered by safety settings. Try rephrasing your concept description."
+        });
+      }
+
+      const imageBytes = response.generatedImages[0].image?.imageBytes;
+      if (!imageBytes) {
+        return res.status(400).json({
+          error: "Image generation completed but no image data was returned. Please try again."
+        });
+      }
+
+      const { Client } = await import('@replit/object-storage');
+      const client = new Client();
+      const storageKey = `images/idea-${ideaId}/${Date.now()}.png`;
+      const buffer = Buffer.from(imageBytes, 'base64');
+
+      await client.uploadFromBytes(storageKey, buffer);
+
+      await query(
+        'INSERT INTO images (idea_id, storage_key, prompt, aspect_ratio, style) VALUES ($1, $2, $3, $4, $5)',
+        [ideaId, storageKey, prompt, aspect_ratio || '1:1', style || 'artistic']
+      );
+
+      return res.json({ storage_key: storageKey, url: `/api/images/${encodeURIComponent(storageKey)}` });
+    } catch (imgError: any) {
+      console.error('Image generation error:', imgError);
+      if (imgError.message?.includes('not found') || imgError.message?.includes('not supported')) {
+        return res.status(400).json({
+          error: "The Imagen model is not available with the current API key. Image generation requires a Gemini API key with Imagen access enabled."
+        });
+      }
+      throw imgError;
     }
-
-    const { Client } = await import('@replit/object-storage');
-    const client = new Client();
-    const storageKey = `images/idea-${ideaId}/${Date.now()}.png`;
-    const buffer = Buffer.from(imageData, 'base64');
-
-    await client.uploadFromBytes(storageKey, buffer);
-
-    await query(
-      'INSERT INTO images (idea_id, storage_key, prompt, aspect_ratio, style) VALUES ($1, $2, $3, $4, $5)',
-      [ideaId, storageKey, prompt, aspect_ratio || '1:1', style || 'artistic']
-    );
-
-    return res.json({ storage_key: storageKey, url: `/api/images/${encodeURIComponent(storageKey)}` });
   } catch (error) {
     console.error('Image generation error:', error);
-    return res.status(500).json({ error: 'Image generation failed' });
+    return res.status(500).json({ error: 'Image generation failed. Please try again.' });
   }
 });
 
@@ -447,31 +465,17 @@ router.post('/:id/find-places', async (req: Request, res: Response) => {
     }
 
     const ai = getAI();
-    const config: any = {
-      tools: [{ googleMaps: {} }],
-    };
 
-    if (user_location) {
-      config.toolConfig = {
-        retrievalConfig: {
-          latLng: {
-            latitude: user_location.lat,
-            longitude: user_location.lng
-          }
-        }
-      };
-    }
-
-    const model = (ai as any).getGenerativeModel({ 
-      model: 'gemini-1.5-flash' 
-    });
-    const genResult = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: search_query }] }]
+    const genResult = await ai.models.generateContent({
+      model: MODEL,
+      contents: search_query,
+      config: {
+        tools: [{ googleSearch: {} }],
+      }
     });
 
-    const genResponse = genResult.response;
-    const text = genResponse.text();
-    const groundingChunks = genResponse.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    const text = genResult.text || "";
+    const groundingChunks = genResult.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
 
     for (const chunk of groundingChunks) {
       const web = (chunk as any).web;
