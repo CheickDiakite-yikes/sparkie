@@ -51,6 +51,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   const [favoriteBusyIdeaId, setFavoriteBusyIdeaId] = useState<number | null>(null);
   const [isRuntimeExpanded, setIsRuntimeExpanded] = useState(false);
   const [isUsageExpanded, setIsUsageExpanded] = useState(false);
+  const [isAccountExpanded, setIsAccountExpanded] = useState(false);
 
   const loadProfile = async () => {
     setLoading(true);
@@ -324,36 +325,47 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-stone-200 bg-white/80 p-5 shadow-sm">
-            <h3 className="font-display text-xl text-stone-900 mb-4">Account</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-              <div className="rounded-xl border border-stone-200 bg-[#FFFEF9] p-3">
-                <div className="text-xs uppercase tracking-[0.2em] text-stone-500">Name</div>
-                <div className="font-semibold text-stone-900 mt-1">{user.name}</div>
-              </div>
-              <div className="rounded-xl border border-stone-200 bg-[#FFFEF9] p-3">
-                <div className="text-xs uppercase tracking-[0.2em] text-stone-500">Email</div>
-                <div className="font-semibold text-stone-900 mt-1 break-all">{user.email}</div>
-              </div>
-              <div className="rounded-xl border border-stone-200 bg-[#FFFEF9] p-3">
-                <div className="text-xs uppercase tracking-[0.2em] text-stone-500">Role</div>
-                <div className="font-semibold text-stone-900 mt-1">{user.job_role || 'Not set'}</div>
-              </div>
-              <div className="rounded-xl border border-stone-200 bg-[#FFFEF9] p-3">
-                <div className="text-xs uppercase tracking-[0.2em] text-stone-500">Joined</div>
-                <div className="font-semibold text-stone-900 mt-1">
-                  {new Date(user.created_at).toLocaleDateString()}
+          <section className="rounded-2xl border border-stone-200 bg-white/80 shadow-sm overflow-hidden transition-all duration-300">
+            <button 
+              onClick={() => setIsAccountExpanded(!isAccountExpanded)}
+              className="w-full p-5 flex items-center justify-between hover:bg-stone-50 transition-colors text-left"
+            >
+              <h3 className="font-display text-xl text-stone-900">Account</h3>
+              <ChevronDown className={`text-stone-400 transition-transform duration-300 ${isAccountExpanded ? 'rotate-180' : ''}`} size={20} />
+            </button>
+
+            <div className={`transition-all duration-300 ease-in-out ${isAccountExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
+              <div className="p-5 pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-xl border border-stone-200 bg-[#FFFEF9] p-3">
+                    <div className="text-xs uppercase tracking-[0.2em] text-stone-500">Name</div>
+                    <div className="font-semibold text-stone-900 mt-1">{user.name}</div>
+                  </div>
+                  <div className="rounded-xl border border-stone-200 bg-[#FFFEF9] p-3">
+                    <div className="text-xs uppercase tracking-[0.2em] text-stone-500">Email</div>
+                    <div className="font-semibold text-stone-900 mt-1 break-all">{user.email}</div>
+                  </div>
+                  <div className="rounded-xl border border-stone-200 bg-[#FFFEF9] p-3">
+                    <div className="text-xs uppercase tracking-[0.2em] text-stone-500">Role</div>
+                    <div className="font-semibold text-stone-900 mt-1">{user.job_role || 'Not set'}</div>
+                  </div>
+                  <div className="rounded-xl border border-stone-200 bg-[#FFFEF9] p-3">
+                    <div className="text-xs uppercase tracking-[0.2em] text-stone-500">Joined</div>
+                    <div className="font-semibold text-stone-900 mt-1">
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <button
+                    onClick={onBackToDashboard}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-900 text-white hover:bg-black transition-colors"
+                  >
+                    Back to Seeds
+                    <ArrowUpRight size={14} />
+                  </button>
                 </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <button
-                onClick={onBackToDashboard}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-900 text-white hover:bg-black transition-colors"
-              >
-                Back to Seeds
-                <ArrowUpRight size={14} />
-              </button>
             </div>
           </section>
 
