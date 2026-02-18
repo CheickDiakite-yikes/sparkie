@@ -11,7 +11,8 @@ GEMINI_API_KEY = "your_api_key_here"
 expertMode = true
 
 [[ports]]
-localPort = 3000
+localPort = 5000
+externalPort = 80
 
 [[ports]]
 localPort = 5000
