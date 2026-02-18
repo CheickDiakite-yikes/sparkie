@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Sparkles, LogOut, Home } from 'lucide-react';
+import { Plus, Sparkles, LogOut, Home, UserRound } from 'lucide-react';
 import IdeaCard from './components/IdeaCard';
 import ChatWidget from './components/ChatWidget';
 import IdeaDetailModal from './components/IdeaDetailModal';
 import LandingPage from './components/LandingPage';
 import SocialMediaCard from './components/SocialMediaCard';
 import AuthPage from './components/AuthPage';
+import ProfilePage from './components/ProfilePage';
 import { authAPI, ideasAPI, aiAPI } from './services/api';
 import { Idea, User } from './types';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -19,7 +20,7 @@ const CARD_COLORS = [
   '#FFE4C2',
 ];
 
-type ViewState = 'landing' | 'auth' | 'dashboard';
+type ViewState = 'landing' | 'auth' | 'dashboard' | 'profile';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>('landing');
@@ -153,6 +154,17 @@ const App: React.FC = () => {
     setSelectedIdea(idea);
   };
 
+  const handleToggleFavorite = async (idea: Idea) => {
+    const tags = Array.isArray(idea.tags) ? idea.tags : [];
+    const isFavorite = tags.includes('Favorite');
+    const nextTags = isFavorite
+      ? tags.filter((tag) => tag !== 'Favorite')
+      : [...new Set([...tags, 'Favorite'])];
+
+    const res = await ideasAPI.update(idea.id, { tags: nextTags });
+    handleUpdateIdea(res.idea, false);
+  };
+
   if (!authChecked) {
     return (
       <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center">
@@ -178,7 +190,7 @@ const App: React.FC = () => {
     );
   }
 
-  if (currentView === 'auth' || (!user && currentView === 'dashboard')) {
+  if (currentView === 'auth' || (!user && (currentView === 'dashboard' || currentView === 'profile'))) {
     return <AuthPage onAuthSuccess={handleAuthSuccess} />;
   }
 
@@ -204,14 +216,16 @@ const App: React.FC = () => {
              </span>
            )}
 
-           <button 
-            onClick={() => setShowNewIdeaInput(true)}
-            className="bg-black hover:bg-stone-800 text-white px-4 py-2 md:px-5 md:py-2.5 rounded-full font-medium transition-transform active:scale-95 shadow-lg flex items-center gap-2 z-10"
-          >
-            <Plus size={18} />
-            <span className="hidden sm:inline">New Seed</span>
-            <span className="inline sm:hidden">Seed</span>
-          </button>
+           {currentView === 'dashboard' && (
+             <button 
+              onClick={() => setShowNewIdeaInput(true)}
+              className="bg-black hover:bg-stone-800 text-white px-4 py-2 md:px-5 md:py-2.5 rounded-full font-medium transition-transform active:scale-95 shadow-lg flex items-center gap-2 z-10"
+            >
+              <Plus size={18} />
+              <span className="hidden sm:inline">New Seed</span>
+              <span className="inline sm:hidden">Seed</span>
+            </button>
+           )}
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-3">
@@ -221,6 +235,20 @@ const App: React.FC = () => {
               title="Home"
             >
               <Home size={20} />
+            </button>
+            <button
+              onClick={() => {
+                setCurrentView('profile');
+                setSelectedIdea(null);
+              }}
+              className={`p-2 rounded-full transition-colors ${
+                currentView === 'profile'
+                  ? 'text-stone-900 bg-stone-100'
+                  : 'text-stone-400 hover:text-stone-600 hover:bg-stone-100'
+              }`}
+              title="Profile"
+            >
+              <UserRound size={18} />
             </button>
             <button
               onClick={handleLogout}
@@ -270,6 +298,18 @@ const App: React.FC = () => {
                     
                     <button 
                       onClick={() => {
+                        setCurrentView('profile');
+                        setSelectedIdea(null);
+                        setShowMobileMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-8 py-4 hover:bg-stone-50 transition-colors text-left group border-t border-stone-200/50"
+                    >
+                      <UserRound size={18} className="text-stone-400 group-hover:text-stone-900" />
+                      <span className="font-hand text-lg text-stone-900">Profile</span>
+                    </button>
+
+                    <button 
+                      onClick={() => {
                         handleLogout();
                         setShowMobileMenu(false);
                       }}
@@ -287,21 +327,38 @@ const App: React.FC = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 md:px-12 py-8">
-        {ideas.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center opacity-60">
-            <div className="w-24 h-24 bg-stone-200 rounded-full mb-6 animate-pulse" />
-            <h2 className="font-display text-4xl text-stone-400 mb-2">It's quiet here...</h2>
-            <p className="font-hand text-xl text-stone-400">Plant a seed to start your garden.</p>
-          </div>
-        )}
+        {currentView === 'dashboard' ? (
+          <>
+            {ideas.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 text-center opacity-60">
+                <div className="w-24 h-24 bg-stone-200 rounded-full mb-6 animate-pulse" />
+                <h2 className="font-display text-4xl text-stone-400 mb-2">It's quiet here...</h2>
+                <p className="font-hand text-xl text-stone-400">Plant a seed to start your garden.</p>
+              </div>
+            )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 auto-rows-fr">
-          {ideas.map(idea => (
-            <ErrorBoundary key={idea.id} componentName={`IdeaCard-${idea.id}`}>
-               <IdeaCard idea={idea} onClick={handleCardClick} />
-            </ErrorBoundary>
-          ))}
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 auto-rows-fr">
+              {ideas.map(idea => (
+                <ErrorBoundary key={idea.id} componentName={`IdeaCard-${idea.id}`}>
+                  <IdeaCard idea={idea} onClick={handleCardClick} />
+                </ErrorBoundary>
+              ))}
+            </div>
+          </>
+        ) : (
+          <ErrorBoundary componentName="ProfilePage">
+            <ProfilePage
+              user={user!}
+              ideas={ideas}
+              onToggleFavorite={handleToggleFavorite}
+              onOpenIdea={(idea) => {
+                setCurrentView('dashboard');
+                setSelectedIdea(idea);
+              }}
+              onBackToDashboard={() => setCurrentView('dashboard')}
+            />
+          </ErrorBoundary>
+        )}
       </main>
 
       {showNewIdeaInput && (
@@ -343,7 +400,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {selectedIdea && (
+      {selectedIdea && currentView === 'dashboard' && (
         <ErrorBoundary componentName="IdeaDetailModal" fallback={
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                 <div className="bg-white p-8 rounded-2xl max-w-md text-center">
@@ -361,12 +418,14 @@ const App: React.FC = () => {
         </ErrorBoundary>
       )}
 
-      <ErrorBoundary componentName="ChatWidget">
-        <ChatWidget 
-            currentIdeaContext={selectedIdea} 
-            onUpdateIdea={(updated) => handleUpdateIdea(updated, false)}
-        />
-      </ErrorBoundary>
+      {currentView === 'dashboard' && (
+        <ErrorBoundary componentName="ChatWidget">
+          <ChatWidget 
+              currentIdeaContext={selectedIdea} 
+              onUpdateIdea={(updated) => handleUpdateIdea(updated, false)}
+          />
+        </ErrorBoundary>
+      )}
     </div>
   );
 };

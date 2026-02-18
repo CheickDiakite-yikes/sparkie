@@ -20,6 +20,7 @@ export const authAPI = {
     fetchJSON('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   logout: () => fetchJSON('/auth/logout', { method: 'POST' }),
   me: () => fetchJSON('/auth/me'),
+  profile: () => fetchJSON('/auth/profile'),
 };
 
 export const ideasAPI = {

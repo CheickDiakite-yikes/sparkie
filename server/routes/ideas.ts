@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { query } from '../db.js';
+import { getRequestId } from '../logger.js';
+import { checkMonthlyIdeaQuota, recordUsageEvent } from '../quota.js';
 import { requireAuth } from './auth.js';
 
 const router = Router();
@@ -83,12 +85,42 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 router.post('/', async (req: Request, res: Response) => {
+  const requestId = getRequestId(req, res);
   try {
     const userId = req.session.userId!;
     const { title, initial_prompt, color, tags } = req.body;
 
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'Title is required' });
+    }
+
+    const quota = await checkMonthlyIdeaQuota(userId);
+    if (!quota.allowed) {
+      await recordUsageEvent({
+        userId,
+        action: 'idea.create',
+        status: 'blocked',
+        requestId,
+        quotaBypass: quota.isBypass,
+        details: {
+          reason: 'monthly_idea_limit_reached',
+          used: quota.used,
+          limit: quota.limit,
+          scope: quota.scope,
+          email: quota.email,
+        },
+      });
+
+      return res.status(429).json({
+        error: `Monthly idea limit reached (${quota.limit}).`,
+        request_id: requestId,
+        quota: {
+          used: quota.used,
+          limit: quota.limit,
+          remaining: quota.remaining,
+          scope: quota.scope,
+        },
+      });
     }
 
     const result = await query(
@@ -108,6 +140,20 @@ router.post('/', async (req: Request, res: Response) => {
     );
 
     const fullIdea = await getIdeaWithRelations(idea.id, userId);
+    await recordUsageEvent({
+      userId,
+      ideaId: idea.id,
+      action: 'idea.create',
+      status: 'success',
+      requestId,
+      quotaBypass: quota.isBypass,
+      details: {
+        usedAfterCreate: quota.used + 1,
+        limit: quota.limit,
+        scope: quota.scope,
+        email: quota.email,
+      },
+    });
     return res.status(201).json({ idea: fullIdea });
   } catch (error) {
     console.error('Create idea error:', error);

@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcrypt';
 import { query } from '../db.js';
+import { IMAGE_LIMIT_PER_IDEA_PER_MONTH, checkMonthlyIdeaQuota } from '../quota.js';
 import '../types.js';
 
 const router = Router();
@@ -103,6 +104,131 @@ router.get('/me', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Me error:', error);
     return res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+router.get('/profile', async (req: Request, res: Response) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const userId = req.session.userId;
+
+    const userResult = await query(
+      'SELECT id, name, email, job_role, created_at FROM users WHERE id = $1',
+      [userId]
+    );
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const user = userResult.rows[0];
+
+    const ideaQuota = await checkMonthlyIdeaQuota(userId);
+
+    const [
+      monthRangeResult,
+      imageUsageByIdeaResult,
+      usageSummaryResult,
+      usageActionsResult,
+    ] = await Promise.all([
+      query(
+        `SELECT
+          date_trunc('month', NOW()) AS month_start,
+          date_trunc('month', NOW()) + interval '1 month' AS month_end`
+      ),
+      query(
+        `SELECT
+          i.id AS idea_id,
+          i.title AS idea_title,
+          COUNT(img.id)::int AS used
+        FROM ideas i
+        LEFT JOIN images img
+          ON img.idea_id = i.id
+          AND img.created_at >= date_trunc('month', NOW())
+          AND img.created_at < date_trunc('month', NOW()) + interval '1 month'
+        WHERE i.user_id = $1
+        GROUP BY i.id, i.title, i.updated_at
+        ORDER BY used DESC, i.updated_at DESC`,
+        [userId]
+      ),
+      query(
+        `SELECT
+          COUNT(*)::int AS events_count,
+          COALESCE(SUM(input_tokens), 0)::int AS input_tokens,
+          COALESCE(SUM(output_tokens), 0)::int AS output_tokens,
+          COALESCE(SUM(estimated_cost_usd), 0)::numeric AS estimated_cost_usd
+        FROM ai_usage_events
+        WHERE user_id = $1
+          AND created_at >= date_trunc('month', NOW())
+          AND created_at < date_trunc('month', NOW()) + interval '1 month'`,
+        [userId]
+      ),
+      query(
+        `SELECT action, status, COUNT(*)::int AS count
+        FROM ai_usage_events
+        WHERE user_id = $1
+          AND created_at >= date_trunc('month', NOW())
+          AND created_at < date_trunc('month', NOW()) + interval '1 month'
+        GROUP BY action, status
+        ORDER BY action ASC, status ASC`,
+        [userId]
+      ),
+    ]);
+
+    const monthStart = monthRangeResult.rows[0]?.month_start;
+    const monthEnd = monthRangeResult.rows[0]?.month_end;
+    const imageUsageByIdea = imageUsageByIdeaResult.rows.map((row: any) => ({
+      idea_id: row.idea_id,
+      idea_title: row.idea_title,
+      used: row.used,
+      limit: IMAGE_LIMIT_PER_IDEA_PER_MONTH,
+      remaining: Math.max(0, IMAGE_LIMIT_PER_IDEA_PER_MONTH - row.used),
+    }));
+    const imagesGeneratedThisMonth = imageUsageByIdea.reduce((sum: number, row: any) => sum + row.used, 0);
+    const usageSummary = usageSummaryResult.rows[0] || {
+      events_count: 0,
+      input_tokens: 0,
+      output_tokens: 0,
+      estimated_cost_usd: 0,
+    };
+
+    return res.json({
+      user,
+      period: {
+        month_start: monthStart,
+        month_end: monthEnd,
+      },
+      quota: {
+        ideas: {
+          used: ideaQuota.used,
+          limit: ideaQuota.limit,
+          remaining: ideaQuota.remaining,
+          is_bypass: ideaQuota.isBypass,
+        },
+        images_per_idea: {
+          limit: IMAGE_LIMIT_PER_IDEA_PER_MONTH,
+          usage_by_idea: imageUsageByIdea,
+        },
+        images_generated_this_month: imagesGeneratedThisMonth,
+      },
+      usage: {
+        events_count: usageSummary.events_count || 0,
+        input_tokens: usageSummary.input_tokens || 0,
+        output_tokens: usageSummary.output_tokens || 0,
+        estimated_cost_usd: Number(usageSummary.estimated_cost_usd || 0),
+        actions: usageActionsResult.rows,
+      },
+      settings: {
+        text_model: process.env.GEMINI_TEXT_MODEL || 'gemini-2.5-flash',
+        image_model: 'gemini-3-pro-image-preview',
+        tier: 'free',
+        high_res_enabled: false,
+      },
+    });
+  } catch (error) {
+    console.error('Profile error:', error);
+    return res.status(500).json({ error: 'Failed to fetch profile' });
   }
 });
 

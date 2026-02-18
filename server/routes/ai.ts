@@ -3,6 +3,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { query } from '../db.js';
 import { getRequestId, logError, logInfo, logWarn, summarizeError, summarizeGeminiResponse } from '../logger.js';
 import { createObjectStorageClient } from '../objectStorage.js';
+import { checkMonthlyImageQuotaForIdea, recordUsageEvent } from '../quota.js';
 import { requireAuth } from './auth.js';
 
 const router = Router();
@@ -10,10 +11,15 @@ router.use(requireAuth);
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-const MODEL = 'gemini-2.0-flash';
+const MODEL = process.env.GEMINI_TEXT_MODEL || 'gemini-2.5-flash';
 const IMAGE_MODEL = 'gemini-3-pro-image-preview';
 const VALID_ASPECT_RATIOS = new Set(['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9']);
 const VALID_IMAGE_SIZES = new Set(['1K', '2K', '4K']);
+const IMAGE_COST_USD_BY_SIZE: Record<string, number> = {
+  '1K': 0.134,
+  '2K': 0.134,
+  '4K': 0.24,
+};
 
 const RESEARCH_AGENT_PROMPT = `
 You are an Elite Market Researcher & Trend Analyst. 
@@ -120,7 +126,27 @@ const updateBlueprintTool = {
   }
 };
 
+function getUsageTokens(response: any): { inputTokens: number; outputTokens: number } {
+  const usage = response?.usageMetadata || {};
+  const inputTokens = Number(usage?.promptTokenCount || 0);
+  const outputTokens = Number(usage?.candidatesTokenCount || 0);
+  return { inputTokens, outputTokens };
+}
+
+function sumUsageTokens(responses: any[]): { inputTokens: number; outputTokens: number } {
+  return responses.reduce(
+    (acc, response) => {
+      const usage = getUsageTokens(response);
+      acc.inputTokens += usage.inputTokens;
+      acc.outputTokens += usage.outputTokens;
+      return acc;
+    },
+    { inputTokens: 0, outputTokens: 0 }
+  );
+}
+
 router.post('/:id/analyze', async (req: Request, res: Response) => {
+  const requestId = getRequestId(req, res);
   try {
     const userId = req.session.userId!;
     const ideaId = parseInt(req.params.id as string);
@@ -137,6 +163,17 @@ router.post('/:id/analyze', async (req: Request, res: Response) => {
     const idea = ideaResult.rows[0];
 
     await query('UPDATE ideas SET status = $1, updated_at = NOW() WHERE id = $2', ['processing', ideaId]);
+    await recordUsageEvent({
+      userId,
+      ideaId,
+      action: 'analysis.start',
+      status: 'success',
+      requestId,
+      model: MODEL,
+      details: {
+        endpoint: '/analyze',
+      },
+    });
 
     res.json({ status: 'processing', message: 'Analysis started' });
 
@@ -209,6 +246,8 @@ router.post('/:id/analyze', async (req: Request, res: Response) => {
           groundingChunks.push(...prdResp.candidates[0].groundingMetadata.groundingChunks);
         }
 
+        const usageTotals = sumUsageTokens([marketResp, techResp, prdResp, uiuxResp, execResp, oneShotResp]);
+
         await query(
           `INSERT INTO analysis (idea_id, executive_summary, market_research, prd, uiux, one_shot_prompt, updated_at)
            VALUES ($1, $2, $3, $4, $5, $6, NOW())
@@ -230,19 +269,57 @@ router.post('/:id/analyze', async (req: Request, res: Response) => {
         }
 
         await query('UPDATE ideas SET status = $1, updated_at = NOW() WHERE id = $2', ['ready', ideaId]);
+        await recordUsageEvent({
+          userId,
+          ideaId,
+          action: 'analysis.complete',
+          status: 'success',
+          requestId,
+          model: MODEL,
+          inputTokens: usageTotals.inputTokens,
+          outputTokens: usageTotals.outputTokens,
+          details: {
+            groundedSources: groundingChunks.length,
+          },
+        });
         console.log(`Analysis complete for idea ${ideaId}`);
       } catch (error) {
         console.error(`Analysis failed for idea ${ideaId}:`, error);
         await query('UPDATE ideas SET status = $1, updated_at = NOW() WHERE id = $2', ['error', ideaId]);
+        await recordUsageEvent({
+          userId,
+          ideaId,
+          action: 'analysis.complete',
+          status: 'failure',
+          requestId,
+          model: MODEL,
+          details: {
+            error: summarizeError(error),
+          },
+        });
       }
     })();
   } catch (error) {
     console.error('Analyze error:', error);
+    if (req.session.userId) {
+      await recordUsageEvent({
+        userId: req.session.userId,
+        ideaId: Number.isNaN(parseInt(req.params.id as string)) ? null : parseInt(req.params.id as string),
+        action: 'analysis.start',
+        status: 'failure',
+        requestId,
+        model: MODEL,
+        details: {
+          error: summarizeError(error),
+        },
+      });
+    }
     return res.status(500).json({ error: 'Failed to start analysis' });
   }
 });
 
 router.post('/:id/ai-chat', async (req: Request, res: Response) => {
+  const requestId = getRequestId(req, res);
   try {
     const userId = req.session.userId!;
     const ideaId = parseInt(req.params.id as string);
@@ -349,6 +426,20 @@ ${analysis.one_shot_prompt}
 
     const responseText = result.text || '';
     await query('INSERT INTO chat_messages (idea_id, role, text) VALUES ($1, $2, $3)', [ideaId, 'model', responseText]);
+    const usage = getUsageTokens(result);
+    await recordUsageEvent({
+      userId,
+      ideaId,
+      action: 'chat.message',
+      status: 'success',
+      requestId,
+      model: MODEL,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      details: {
+        messageLength: String(message).length,
+      },
+    });
 
     return res.json({
       response: responseText,
@@ -356,6 +447,19 @@ ${analysis.one_shot_prompt}
     });
   } catch (error) {
     console.error('AI chat error:', error);
+    if (req.session.userId) {
+      await recordUsageEvent({
+        userId: req.session.userId,
+        ideaId: Number.isNaN(parseInt(req.params.id as string)) ? null : parseInt(req.params.id as string),
+        action: 'chat.message',
+        status: 'failure',
+        requestId,
+        model: MODEL,
+        details: {
+          error: summarizeError(error),
+        },
+      });
+    }
     return res.status(500).json({ error: 'AI chat failed' });
   }
 });
@@ -391,6 +495,7 @@ router.post('/:id/generate-image', async (req: Request, res: Response) => {
 
     const idea = ideaResult.rows[0] as any;
     const ai = getAI();
+    const imageQuota = await checkMonthlyImageQuotaForIdea(userId, ideaId);
 
     const requestedStyle = String(style || visual_mode || 'artistic');
     const normalizedStyle = requestedStyle === 'ui-flow' ? 'ui-flow' : 'artistic';
@@ -402,6 +507,42 @@ router.post('/:id/generate-image', async (req: Request, res: Response) => {
     const safeImageSize = VALID_IMAGE_SIZES.has(normalizedSize)
       ? normalizedSize
       : (normalizedStyle === 'ui-flow' ? '2K' : '1K');
+    const estimatedImageCostUsd = IMAGE_COST_USD_BY_SIZE[safeImageSize] || IMAGE_COST_USD_BY_SIZE['1K'];
+
+    if (!imageQuota.allowed) {
+      await recordUsageEvent({
+        userId,
+        ideaId,
+        action: 'image.generate',
+        status: 'blocked',
+        requestId,
+        model: IMAGE_MODEL,
+        imageCount: 1,
+        estimatedCostUsd: estimatedImageCostUsd,
+        quotaBypass: imageQuota.isBypass,
+        details: {
+          reason: 'monthly_image_limit_per_idea_reached',
+          used: imageQuota.used,
+          limit: imageQuota.limit,
+          remaining: imageQuota.remaining,
+          scope: imageQuota.scope,
+          email: imageQuota.email,
+          imageSize: safeImageSize,
+          style: normalizedStyle,
+        },
+      });
+
+      return res.status(429).json({
+        error: `Monthly image limit reached for this idea (${imageQuota.limit}).`,
+        request_id: requestId,
+        quota: {
+          used: imageQuota.used,
+          limit: imageQuota.limit,
+          remaining: imageQuota.remaining,
+          scope: imageQuota.scope,
+        },
+      });
+    }
 
     let basePrompt = typeof prompt === 'string' ? prompt.trim() : '';
     let promptSource: 'request' | 'idea-context' = 'request';
@@ -464,6 +605,25 @@ Requirements:
         imageSize: safeImageSize,
         promptSource,
         promptLength: finalPrompt.length,
+      });
+      await recordUsageEvent({
+        userId,
+        ideaId,
+        action: 'image.generate',
+        status: 'allowed',
+        requestId,
+        model: IMAGE_MODEL,
+        imageCount: 1,
+        estimatedCostUsd: estimatedImageCostUsd,
+        quotaBypass: imageQuota.isBypass,
+        details: {
+          used: imageQuota.used,
+          limit: imageQuota.limit,
+          remaining: imageQuota.remaining,
+          scope: imageQuota.scope,
+          imageSize: safeImageSize,
+          style: normalizedStyle,
+        },
       });
 
       const response = await ai.models.generateContent({
@@ -553,6 +713,25 @@ Requirements:
         storageKey,
         durationMs: Date.now() - requestStartedAt,
       });
+      await recordUsageEvent({
+        userId,
+        ideaId,
+        action: 'image.generate',
+        status: 'success',
+        requestId,
+        model: IMAGE_MODEL,
+        imageCount: 1,
+        estimatedCostUsd: estimatedImageCostUsd,
+        quotaBypass: imageQuota.isBypass,
+        details: {
+          storageKey,
+          imageSize: safeImageSize,
+          style: normalizedStyle,
+          usedAfterGenerate: imageQuota.used + 1,
+          limit: imageQuota.limit,
+          scope: imageQuota.scope,
+        },
+      });
 
       return res.json({
         storage_key: storageKey,
@@ -569,6 +748,22 @@ Requirements:
         imageSize: safeImageSize,
         durationMs: Date.now() - requestStartedAt,
         error: summarizeError(imgError),
+      });
+      await recordUsageEvent({
+        userId,
+        ideaId,
+        action: 'image.generate',
+        status: 'failure',
+        requestId,
+        model: IMAGE_MODEL,
+        imageCount: 1,
+        estimatedCostUsd: estimatedImageCostUsd,
+        quotaBypass: imageQuota.isBypass,
+        details: {
+          imageSize: safeImageSize,
+          style: normalizedStyle,
+          error: summarizeError(imgError),
+        },
       });
       return res.status(500).json({
         error: "Image generation failed. Please try again with a different prompt.",
@@ -665,6 +860,7 @@ router.delete('/:id/images/:imageId', async (req: Request, res: Response) => {
 });
 
 router.post('/:id/find-places', async (req: Request, res: Response) => {
+  const requestId = getRequestId(req, res);
   try {
     const userId = req.session.userId!;
     const ideaId = parseInt(req.params.id as string);
@@ -695,6 +891,7 @@ router.post('/:id/find-places', async (req: Request, res: Response) => {
 
     const text = genResult.text || "";
     const groundingChunks = genResult.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    const usage = getUsageTokens(genResult);
 
     for (const chunk of groundingChunks) {
       const web = (chunk as any).web;
@@ -708,9 +905,36 @@ router.post('/:id/find-places', async (req: Request, res: Response) => {
       }
     }
 
+    await recordUsageEvent({
+      userId,
+      ideaId,
+      action: 'places.search',
+      status: 'success',
+      requestId,
+      model: MODEL,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      details: {
+        groundedSources: groundingChunks.length,
+      },
+    });
+
     return res.json({ text, grounding_sources: groundingChunks });
   } catch (error) {
     console.error('Find places error:', error);
+    if (req.session.userId) {
+      await recordUsageEvent({
+        userId: req.session.userId,
+        ideaId: Number.isNaN(parseInt(req.params.id as string)) ? null : parseInt(req.params.id as string),
+        action: 'places.search',
+        status: 'failure',
+        requestId,
+        model: MODEL,
+        details: {
+          error: summarizeError(error),
+        },
+      });
+    }
     return res.status(500).json({ error: 'Places search failed' });
   }
 });

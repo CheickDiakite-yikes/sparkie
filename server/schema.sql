@@ -68,6 +68,23 @@ CREATE TABLE IF NOT EXISTS grounding_sources (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS ai_usage_events (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  idea_id INTEGER REFERENCES ideas(id) ON DELETE SET NULL,
+  action VARCHAR(100) NOT NULL,
+  status VARCHAR(50) NOT NULL,
+  request_id VARCHAR(100),
+  model VARCHAR(100),
+  input_tokens INTEGER,
+  output_tokens INTEGER,
+  image_count INTEGER,
+  estimated_cost_usd NUMERIC(12, 6),
+  quota_bypass BOOLEAN DEFAULT false,
+  details JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_ideas_user_id ON ideas(user_id);
 CREATE INDEX IF NOT EXISTS idx_ideas_created_at ON ideas(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_user_notes_idea_id ON user_notes(idea_id);
@@ -75,3 +92,6 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_idea_id ON chat_messages(idea_id);
 CREATE INDEX IF NOT EXISTS idx_images_idea_id ON images(idea_id);
 CREATE INDEX IF NOT EXISTS idx_grounding_sources_idea_id ON grounding_sources(idea_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_events_user_id ON ai_usage_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_events_created_at ON ai_usage_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_events_action ON ai_usage_events(action);

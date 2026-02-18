@@ -81,6 +81,54 @@ export interface ChatMessage {
   created_at?: string;
 }
 
+export interface ProfileImageQuotaUsage {
+  idea_id: number;
+  idea_title: string;
+  used: number;
+  limit: number;
+  remaining: number;
+}
+
+export interface ProfileUsageAction {
+  action: string;
+  status: string;
+  count: number;
+}
+
+export interface ProfileData {
+  user: User;
+  period: {
+    month_start: string;
+    month_end: string;
+  };
+  quota: {
+    ideas: {
+      used: number;
+      limit: number;
+      remaining: number;
+      is_bypass: boolean;
+    };
+    images_per_idea: {
+      limit: number;
+      usage_by_idea: ProfileImageQuotaUsage[];
+    };
+    images_generated_this_month: number;
+  };
+  usage: {
+    events_count: number;
+    input_tokens: number;
+    output_tokens: number;
+    estimated_cost_usd: number;
+    actions: ProfileUsageAction[];
+  };
+  settings: {
+    text_model: string;
+    image_model: string;
+    tier: string;
+    high_res_enabled: boolean;
+  };
+}
+
 export enum AspectRatio {
   SQUARE = "1:1",
   PORTRAIT = "3:4",
