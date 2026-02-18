@@ -314,7 +314,7 @@ ${analysis.one_shot_prompt}
       history: chatHistory,
     });
 
-    const result = await chat.sendMessage({ message });
+    const result = await chat.sendMessage(message);
 
     const sectionMap: Record<string, string> = {
       executiveSummary: 'executive_summary',
@@ -325,8 +325,9 @@ ${analysis.one_shot_prompt}
     };
 
     let toolCallResults: any[] = [];
-    if (result.functionCalls) {
-      for (const fc of result.functionCalls) {
+    const functionCalls = result.functionCalls;
+    if (functionCalls && functionCalls.length > 0) {
+      for (const fc of functionCalls) {
         if (fc.name === 'updateProjectBlueprint') {
           const args = fc.args as any;
           const dbColumn = sectionMap[args.section];
