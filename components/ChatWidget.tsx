@@ -27,10 +27,11 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentIdeaContext, onUpdateIde
   }, [messages, isOpen]);
 
   const handleSend = async () => {
-    if (!input.trim() || !currentIdeaContext) return;
+    if (!input.trim()) return;
 
     const userMsg: ChatMessage = { id: Date.now(), role: 'user', text: input };
     setMessages(prev => [...prev, userMsg]);
+    const currentInput = input;
     setInput('');
     setIsTyping(true);
 
@@ -40,9 +41,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentIdeaContext, onUpdateIde
         text: m.text
       }));
 
-      const result = await aiAPI.chat(currentIdeaContext.id, input, history);
+      // If no idea context, use a general chat endpoint or handle differently
+      // For now, we'll try to use the AI chat even without specific idea context if possible, 
+      // but the backend might require an ID. Let's check server/routes/ai.ts
+      const result = currentIdeaContext 
+        ? await aiAPI.chat(currentIdeaContext.id, currentInput, history)
+        : { response: "I'm here to help! To give you the best advice on your projects, please open one of your 'seeds' (ideas) so I can see the context. What would you like to brainstorm in general?" };
 
-      if (result.toolCalls && result.toolCalls.length > 0 && onUpdateIdea) {
+      if (currentIdeaContext && result.toolCalls && result.toolCalls.length > 0 && onUpdateIdea) {
         const freshIdea = await ideasAPI.get(currentIdeaContext.id);
         onUpdateIdea(freshIdea.idea);
         
@@ -142,7 +148,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ currentIdeaContext, onUpdateIde
               />
               <button 
                 onClick={handleSend}
-                disabled={!input.trim() || isTyping || !currentIdeaContext}
+                disabled={!input.trim() || isTyping}
                 className="p-2 bg-[#2C2C2C] text-white rounded-md hover:bg-black disabled:opacity-50 transition-colors shadow-sm"
               >
                 <Send size={16} />
